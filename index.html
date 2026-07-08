@@ -4,194 +4,295 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Enclave Library</title>
+  <meta name="description" content="Steam, Epic ve harici oyunlarını tek modern arayüzde birleştiren AI destekli oyun kütüphanesi." />
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: Arial, sans-serif;
-      background: radial-gradient(circle at top, #1d2b4f 0%, #080b12 45%, #05070c 100%);
-      color: white;
-      min-height: 100vh;
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{
+      font-family:Inter,Arial,sans-serif;
+      background:#05070d;
+      color:#fff;
+      overflow-x:hidden;
     }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 28px 8%;
+    body:before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(circle at 20% 10%,rgba(83,128,255,.35),transparent 28%),
+        radial-gradient(circle at 80% 20%,rgba(140,72,255,.25),transparent 30%),
+        radial-gradient(circle at 50% 90%,rgba(0,255,200,.12),transparent 35%);
+      z-index:-2;
     }
-
-    .logo {
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
+    body:after{
+      content:"";
+      position:fixed;
+      inset:0;
+      background:linear-gradient(180deg,rgba(5,7,13,.2),#05070d 75%);
+      z-index:-1;
     }
-
-    nav a {
-      color: #b9c4d8;
-      text-decoration: none;
-      margin-left: 24px;
-      font-size: 14px;
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:22px 8%;
+      backdrop-filter:blur(18px);
+      background:rgba(5,7,13,.62);
+      border-bottom:1px solid rgba(255,255,255,.08);
     }
-
-    nav a:hover { color: white; }
-
-    .hero {
-      padding: 90px 8% 70px;
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 50px;
-      align-items: center;
+    .logo{
+      font-weight:900;
+      font-size:22px;
+      letter-spacing:.3px;
     }
-
-    .badge {
-      display: inline-block;
-      padding: 8px 14px;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      color: #9ecbff;
-      margin-bottom: 24px;
-      font-size: 14px;
+    nav a{
+      color:#b8c2d8;
+      text-decoration:none;
+      margin-left:24px;
+      font-size:14px;
     }
-
-    h1 {
-      font-size: clamp(42px, 7vw, 78px);
-      line-height: 0.95;
-      margin-bottom: 24px;
+    nav a:hover{color:#fff}
+    .hero{
+      min-height:82vh;
+      display:grid;
+      grid-template-columns:1.05fr .95fr;
+      align-items:center;
+      gap:60px;
+      padding:90px 8% 70px;
     }
-
-    .hero p {
-      color: #b9c4d8;
-      font-size: 18px;
-      line-height: 1.7;
-      max-width: 650px;
-      margin-bottom: 34px;
+    .badge{
+      display:inline-flex;
+      padding:9px 15px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.13);
+      color:#9fc7ff;
+      margin-bottom:24px;
+      font-size:14px;
     }
-
-    .buttons {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
+    h1{
+      font-size:clamp(46px,7vw,86px);
+      line-height:.94;
+      letter-spacing:-3px;
+      margin-bottom:24px;
     }
-
-    .btn {
-      padding: 15px 22px;
-      border-radius: 14px;
-      text-decoration: none;
-      font-weight: 700;
-      display: inline-block;
+    .gradient{
+      background:linear-gradient(135deg,#7fb0ff,#9b6cff,#5effd0);
+      -webkit-background-clip:text;
+      color:transparent;
     }
-
-    .primary {
-      background: linear-gradient(135deg, #4d8dff, #7c5cff);
-      color: white;
+    .hero p{
+      max-width:680px;
+      color:#b9c4d8;
+      font-size:18px;
+      line-height:1.75;
+      margin-bottom:34px;
     }
-
-    .secondary {
-      border: 1px solid rgba(255,255,255,0.18);
-      color: white;
-      background: rgba(255,255,255,0.06);
+    .buttons{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
     }
-
-    .preview {
-      min-height: 360px;
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 28px;
-      background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
-      box-shadow: 0 30px 100px rgba(0,0,0,0.45);
-      padding: 22px;
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:15px 22px;
+      border-radius:15px;
+      text-decoration:none;
+      font-weight:800;
+      transition:.2s;
     }
-
-    .window {
-      height: 100%;
-      border-radius: 20px;
-      background: #0d1322;
-      padding: 18px;
+    .btn:hover{transform:translateY(-2px)}
+    .primary{
+      color:#fff;
+      background:linear-gradient(135deg,#4c8dff,#7a5cff);
+      box-shadow:0 15px 35px rgba(77,141,255,.25);
     }
-
-    .topline {
-      height: 12px;
-      width: 120px;
-      border-radius: 99px;
-      background: #253654;
-      margin-bottom: 24px;
+    .secondary{
+      color:#fff;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.14);
     }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
+    .app-preview{
+      position:relative;
+      border-radius:32px;
+      padding:18px;
+      background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,.13);
+      box-shadow:0 40px 120px rgba(0,0,0,.55);
+      transform:perspective(900px) rotateY(-7deg) rotateX(3deg);
     }
-
-    .game-card {
-      height: 130px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, #23375f, #111827);
-      border: 1px solid rgba(255,255,255,0.08);
-      padding: 14px;
-      color: #dce7ff;
+    .window{
+      border-radius:24px;
+      overflow:hidden;
+      background:#0b1020;
+      border:1px solid rgba(255,255,255,.08);
     }
-
-    section {
-      padding: 70px 8%;
+    .window-top{
+      height:48px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:0 18px;
+      background:#0e1628;
+      border-bottom:1px solid rgba(255,255,255,.08);
     }
-
-    .section-title {
-      font-size: 36px;
-      margin-bottom: 16px;
+    .dot{width:11px;height:11px;border-radius:50%;background:#33415f}
+    .window-body{
+      display:grid;
+      grid-template-columns:80px 1fr;
+      min-height:380px;
     }
-
-    .section-desc {
-      color: #aeb9cc;
-      max-width: 720px;
-      line-height: 1.7;
-      margin-bottom: 32px;
+    .side{
+      background:#080d18;
+      border-right:1px solid rgba(255,255,255,.07);
+      padding:18px 12px;
     }
-
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
+    .side div{
+      height:38px;
+      border-radius:12px;
+      background:rgba(255,255,255,.06);
+      margin-bottom:12px;
     }
-
-    .feature {
-      padding: 24px;
-      border-radius: 22px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
+    .content{padding:22px}
+    .hero-card{
+      height:120px;
+      border-radius:22px;
+      background:linear-gradient(135deg,#203b72,#161c32);
+      margin-bottom:18px;
+      padding:22px;
+      color:#dfe9ff;
+      font-weight:800;
     }
-
-    .feature h3 {
-      margin-bottom: 10px;
-      font-size: 20px;
+    .game-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
     }
-
-    .feature p {
-      color: #aeb9cc;
-      line-height: 1.6;
-      font-size: 15px;
+    .game{
+      height:120px;
+      border-radius:18px;
+      background:linear-gradient(145deg,#19243b,#0e1424);
+      border:1px solid rgba(255,255,255,.08);
+      padding:14px;
+      color:#9fb0cf;
+      font-size:14px;
     }
-
-    footer {
-      padding: 40px 8%;
-      color: #7f8da5;
-      border-top: 1px solid rgba(255,255,255,0.08);
+    section{
+      padding:82px 8%;
     }
-
-    @media (max-width: 900px) {
-      .hero {
-        grid-template-columns: 1fr;
-        padding-top: 50px;
-      }
-
-      .feature-grid {
-        grid-template-columns: 1fr;
-      }
-
-      nav {
-        display: none;
-      }
+    .section-title{
+      font-size:clamp(34px,4vw,54px);
+      margin-bottom:16px;
+      letter-spacing:-1.5px;
+    }
+    .section-desc{
+      max-width:760px;
+      color:#aeb9cc;
+      line-height:1.75;
+      font-size:17px;
+      margin-bottom:34px;
+    }
+    .features{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:18px;
+    }
+    .feature{
+      min-height:190px;
+      padding:26px;
+      border-radius:26px;
+      background:rgba(255,255,255,.065);
+      border:1px solid rgba(255,255,255,.11);
+      backdrop-filter:blur(18px);
+    }
+    .feature h3{
+      font-size:21px;
+      margin-bottom:12px;
+    }
+    .feature p{
+      color:#aeb9cc;
+      line-height:1.65;
+      font-size:15px;
+    }
+    .split{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:24px;
+      align-items:stretch;
+    }
+    .panel{
+      padding:30px;
+      border-radius:28px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.1);
+    }
+    .chat{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .bubble{
+      padding:15px 18px;
+      border-radius:18px;
+      background:#0e1628;
+      color:#c9d6ef;
+      line-height:1.55;
+    }
+    .bubble.ai{
+      background:linear-gradient(135deg,rgba(76,141,255,.22),rgba(124,92,255,.18));
+      border:1px solid rgba(127,176,255,.18);
+    }
+    .roadmap{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:16px;
+    }
+    .road{
+      padding:22px;
+      border-radius:22px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.1);
+    }
+    .road strong{display:block;margin-bottom:8px}
+    .download{
+      text-align:center;
+      padding:90px 8%;
+    }
+    .download-box{
+      max-width:760px;
+      margin:auto;
+      padding:42px;
+      border-radius:34px;
+      background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.05));
+      border:1px solid rgba(255,255,255,.12);
+    }
+    footer{
+      padding:40px 8%;
+      border-top:1px solid rgba(255,255,255,.08);
+      color:#8290aa;
+      display:flex;
+      justify-content:space-between;
+      gap:20px;
+      flex-wrap:wrap;
+    }
+    footer a{
+      color:#aeb9cc;
+      text-decoration:none;
+      margin-left:16px;
+    }
+    @media(max-width:980px){
+      nav{display:none}
+      .hero,.split{grid-template-columns:1fr}
+      .features,.roadmap{grid-template-columns:1fr}
+      .app-preview{transform:none}
+      .game-grid{grid-template-columns:1fr 1fr}
     }
   </style>
 </head>
@@ -200,105 +301,152 @@
     <div class="logo">🎮 Enclave Library</div>
     <nav>
       <a href="#features">Özellikler</a>
+      <a href="#ai">AI</a>
       <a href="#cloud">Cloud Save</a>
-      <a href="#ai">Enclave AI</a>
+      <a href="#roadmap">Roadmap</a>
       <a href="#download">Download</a>
     </nav>
   </header>
 
   <main class="hero">
     <div>
-      <span class="badge">Windows için modern oyun kütüphanesi</span>
-      <h1>Tüm oyunların tek yerde.</h1>
+      <span class="badge">Windows için yeni nesil oyun kütüphanesi</span>
+      <h1>One Library.<br><span class="gradient">Every Game.</span></h1>
       <p>
-        Enclave Library; Steam, Epic Games ve harici oyunlarını modern bir arayüzde birleştiren,
+        Enclave Library; Steam, Epic Games ve harici oyunlarını tek modern masaüstü arayüzünde birleştiren,
         AI destekli oyun kütüphanesi ve yönetim platformudur.
       </p>
       <div class="buttons">
-        <a class="btn primary" href="#download">Download v1.0.2</a>
+        <a class="btn primary" href="#download">⬇ Download v1.0.2</a>
         <a class="btn secondary" href="#features">Özellikleri Gör</a>
       </div>
     </div>
 
-    <div class="preview">
+    <div class="app-preview">
       <div class="window">
-        <div class="topline"></div>
-        <div class="cards">
-          <div class="game-card">Steam Library</div>
-          <div class="game-card">Epic Sync</div>
-          <div class="game-card">Enclave AI</div>
-          <div class="game-card">Cloud Save</div>
+        <div class="window-top">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="window-body">
+          <div class="side">
+            <div></div><div></div><div></div><div></div>
+          </div>
+          <div class="content">
+            <div class="hero-card">Enclave Dashboard</div>
+            <div class="game-grid">
+              <div class="game">Steam Library</div>
+              <div class="game">Epic Sync</div>
+              <div class="game">AI Coach</div>
+              <div class="game">Cloud Save</div>
+              <div class="game">Download Manager</div>
+              <div class="game">Save Vault</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </main>
 
   <section id="features">
-    <h2 class="section-title">Platform gibi launcher.</h2>
+    <h2 class="section-title">Launcher değil, oyun platformu.</h2>
     <p class="section-desc">
-      Enclave Library yalnızca oyun başlatmaz; kütüphaneni analiz eder, düzenler, öneriler sunar
-      ve gelecekte tüm cihazların arasında senkronize çalışacak şekilde tasarlanır.
+      Enclave Library yalnızca oyun başlatmaz. Kütüphaneni düzenler, analiz eder, öneriler sunar,
+      save dosyalarını yönetir ve gelecekte tüm cihazlarında aynı deneyimi hedefler.
     </p>
 
-    <div class="feature-grid">
+    <div class="features">
       <div class="feature">
         <h3>📚 Kütüphane Yönetimi</h3>
-        <p>Steam, Epic ve harici oyunları tek modern arayüzde birleştir.</p>
+        <p>Steam, Epic ve harici oyunları tek kart sisteminde birleştir. Favoriler, etiketler ve koleksiyonlar oluştur.</p>
       </div>
-
       <div class="feature">
         <h3>🤖 Enclave AI</h3>
-        <p>Oyun zevkini analiz eden kişisel oyun öneri sistemi.</p>
+        <p>Oyun zevkini, oynama süreni ve favorilerini analiz ederek sana kişisel oyun önerileri sunar.</p>
       </div>
-
       <div class="feature">
-        <h3>☁️ Cloud Save</h3>
-        <p>Steam dışındaki oyunlar için evrensel save yedekleme altyapısı.</p>
+        <h3>☁️ Universal Cloud Save</h3>
+        <p>Steam dışındaki oyunlar için save yedekleme, sürüm geçmişi ve cihazlar arası senkronizasyon altyapısı.</p>
       </div>
-
       <div class="feature">
-        <h3>🎨 Modern Arayüz</h3>
-        <p>Dark tema, oyun kartları, hero banner ve responsive tasarım.</p>
+        <h3>📥 Download Center</h3>
+        <p>Arka planda indirme, kuyruk, hız limiti, duraklat/devam ettir ve güncelleme desteği.</p>
       </div>
-
       <div class="feature">
-        <h3>📊 İstatistikler</h3>
-        <p>Toplam oynama süresi, favoriler, son aktiviteler ve hedefler.</p>
+        <h3>💾 Save Vault</h3>
+        <p>Oyun başına kayıt klasörü tanımla, güvenli yedek al ve eski kayıtları geri yükle.</p>
       </div>
-
       <div class="feature">
-        <h3>🔄 Güncelleme Sistemi</h3>
-        <p>GitHub Releases destekli güvenli güncelleme altyapısı.</p>
+        <h3>🎨 Modern UI</h3>
+        <p>Dark tema, modern oyun kartları, hero banner, toast bildirimleri ve responsive arayüz.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="ai">
+    <div class="split">
+      <div>
+        <h2 class="section-title">Enclave AI</h2>
+        <p class="section-desc">
+          “Bugün ne oynayayım?” sorusuna kütüphaneni analiz ederek cevap veren kişisel oyun koçun.
+        </p>
+      </div>
+      <div class="panel chat">
+        <div class="bubble">Bugün ne oynayayım?</div>
+        <div class="bubble ai">
+          Cyberpunk 2077 iyi seçim olabilir. Son dönemde hikayeli açık dünya oyunlarını seviyorsun
+          ve bu oyuna uzun süredir dönmemişsin.
+        </div>
       </div>
     </div>
   </section>
 
   <section id="cloud">
-    <h2 class="section-title">Universal Cloud Save</h2>
-    <p class="section-desc">
-      Enclave Save Vault; ileride Google Drive, OneDrive ve Enclave Cloud desteğiyle oyun kayıtlarını
-      otomatik yedekleyip farklı cihazlarda geri yüklemeyi hedefler.
-    </p>
+    <div class="split">
+      <div class="panel">
+        <h2 class="section-title">Cloud Save hazır.</h2>
+        <p class="section-desc">
+          Enclave Save Vault; Google Drive, OneDrive ve ileride Enclave Cloud desteğiyle
+          oyun kayıtlarını otomatik yedeklemeyi hedefler.
+        </p>
+      </div>
+      <div class="panel">
+        <h2 class="section-title">Hesabınla her şey yanında.</h2>
+        <p class="section-desc">
+          Favoriler, notlar, koleksiyonlar, AI hafızası, ayarlar ve save yolları bulutla senkronize edilebilir.
+        </p>
+      </div>
+    </div>
   </section>
 
-  <section id="ai">
-    <h2 class="section-title">Enclave AI</h2>
-    <p class="section-desc">
-      Kütüphaneni, favorilerini, oynama sürelerini ve geçmiş tercihlerini analiz ederek sana ne oynayacağını
-      söyleyen kişisel oyun koçu.
-    </p>
+  <section id="roadmap">
+    <h2 class="section-title">Roadmap</h2>
+    <p class="section-desc">Enclave Library adım adım kişisel oyun işletim sistemine dönüşüyor.</p>
+
+    <div class="roadmap">
+      <div class="road"><strong>v1.0</strong>Launcher, Steam/Epic, AI, indirme sistemi.</div>
+      <div class="road"><strong>v1.5</strong>Profil, Cloud Sync, Save Vault geliştirmeleri.</div>
+      <div class="road"><strong>v2.0</strong>Universal Cloud Save, Enclave Account.</div>
+      <div class="road"><strong>v3.0</strong>Friends, Connect, Achievements, Plugin System.</div>
+    </div>
   </section>
 
-  <section id="download">
-    <h2 class="section-title">Download</h2>
-    <p class="section-desc">
-      Enclave Library şu anda Windows için geliştiriliyor. İlk public beta yakında yayınlanacak.
-    </p>
-    <a class="btn primary" href="#">Yakında İndir</a>
+  <section id="download" class="download">
+    <div class="download-box">
+      <h2 class="section-title">Download Enclave Library</h2>
+      <p class="section-desc">
+        Windows için geliştiriliyor. Public beta ve güncel setup dosyası yakında burada yayınlanacak.
+      </p>
+      <a class="btn primary" href="#">Yakında İndir</a>
+    </div>
   </section>
 
   <footer>
-    © 2026 Enclave Library. Built for PC gamers.
+    <div>© 2026 Enclave Library. Built for PC gamers.</div>
+    <div>
+      <a href="mailto:support@enclavelibrary.com">Support</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#download">Download</a>
+    </div>
   </footer>
 </body>
 </html>
