@@ -1,0 +1,15 @@
+{
+  "manifest_version": 1,
+  "app_name": "Enclave Library",
+  "latest_version": "1.0.2",
+  "minimum_supported_version": "1.0.2",
+  "force_update": false,
+  "platform": "windows",
+  "download_url": "https://enclavelibrary.com/pages/download.html",
+  "release_notes_url": "https://enclavelibrary.com/pages/changelog.html",
+  "message": "Güncel sürümü kullanıyorsun.",
+  "published_at": "2026-07-10",
+  "sha256": "",
+  "file_size": "",
+  "signature": ""
+}
