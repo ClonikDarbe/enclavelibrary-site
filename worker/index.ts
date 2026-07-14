@@ -8,6 +8,9 @@ interface Env {
   SUPABASE_URL?: string;
   SUPABASE_PUBLISHABLE_KEY?: string;
   SUPABASE_ANON_KEY?: string;
+  AI?: {
+    run(model: string, input: Record<string, unknown>): Promise<unknown>;
+  };
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -38,6 +41,10 @@ const worker = {
     if (env.SUPABASE_URL) process.env.SUPABASE_URL = env.SUPABASE_URL;
     if (env.SUPABASE_PUBLISHABLE_KEY) process.env.SUPABASE_PUBLISHABLE_KEY = env.SUPABASE_PUBLISHABLE_KEY;
     if (env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
+
+    if (url.pathname === "/api/translate") {
+      return handleTranslationRequest(request, env, ctx);
+    }
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
@@ -70,3 +77,59 @@ const worker = {
 };
 
 export default worker;
+
+async function handleTranslationRequest(request: Request, env: Env, ctx: ExecutionContext) {
+  if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+  if (Number(request.headers.get("content-length") || 0) > 8_192) return new Response("İstek çok büyük.", { status: 413 });
+
+  const url = new URL(request.url);
+  if (request.headers.get("origin") !== url.origin) return new Response("Geçersiz istek.", { status: 403 });
+
+  const key = env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY;
+  const token = readCookie(request.headers.get("cookie") || "", "enclave_access");
+  if (!env.SUPABASE_URL || !key || !token) return new Response("Oturum gerekli.", { status: 401 });
+
+  const userResponse = await fetch(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/user`, {
+    headers: { apikey: key, Authorization: `Bearer ${token}` },
+  });
+  if (!userResponse.ok) return new Response("Oturum gerekli.", { status: 401 });
+
+  const payload = await request.json().catch(() => null) as { text?: unknown } | null;
+  const source = typeof payload?.text === "string" ? payload.text.trim() : "";
+  if (!source || source.length > 4_000) return new Response("Geçersiz açıklama.", { status: 400 });
+  if (!env.AI) return new Response("Çeviri servisi kullanılamıyor.", { status: 503 });
+
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
+  const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  const cacheKey = new Request(`${url.origin}/__enclave_translation/${hash}`);
+  const edgeCache = (caches as CacheStorage & { default: Cache }).default;
+  const cached = await edgeCache.match(cacheKey);
+  if (cached) return cached;
+
+  const result = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fast", {
+    messages: [
+      { role: "system", content: "Oyun açıklamalarını doğal ve akıcı Türkiye Türkçesine çevir. Oyun, kişi, stüdyo ve marka adlarını değiştirme. Metin zaten Türkçeyse anlamını bozmadan aynen koru. Yalnızca çevrilmiş açıklamayı yaz; başlık, not, tırnak veya açıklama ekleme." },
+      { role: "user", content: source },
+    ],
+    temperature: 0,
+    max_tokens: 1_200,
+  }) as { response?: unknown };
+  const translation = typeof result?.response === "string" ? result.response.trim().replace(/^['\"]|['\"]$/g, "") : "";
+  if (!translation) return new Response("Çeviri oluşturulamadı.", { status: 502 });
+
+  const response = Response.json({ translation }, {
+    headers: { "Cache-Control": "private, max-age=2592000", "X-Content-Type-Options": "nosniff" },
+  });
+  const cacheResponse = new Response(response.clone().body, response);
+  cacheResponse.headers.set("Cache-Control", "public, max-age=2592000");
+  ctx.waitUntil(edgeCache.put(cacheKey, cacheResponse));
+  return response;
+}
+
+function readCookie(header: string, name: string) {
+  for (const part of header.split(";")) {
+    const [key, ...value] = part.trim().split("=");
+    if (key === name) return decodeURIComponent(value.join("="));
+  }
+  return "";
+}

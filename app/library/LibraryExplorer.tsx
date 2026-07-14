@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type LibraryGame = {
   id: string;
@@ -36,8 +36,41 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
   const [scope, setScope] = useState<Scope>("all");
   const [sort, setSort] = useState("title");
   const [selected, setSelected] = useState<LibraryGame | null>(null);
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [translationLoading, setTranslationLoading] = useState(false);
   const deviceCount = games.filter((game) => game.devicePresent).length;
   const archiveCount = games.length - deviceCount;
+
+  useEffect(() => {
+    if (!selected?.summary || translations[selected.id]) {
+      setTranslationLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setTranslationLoading(true);
+    void fetch("/api/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: selected.summary }),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("translation_failed");
+        return response.json() as Promise<{ translation?: string }>;
+      })
+      .then((payload) => {
+        if (payload.translation) setTranslations((current) => ({ ...current, [selected.id]: payload.translation! }));
+      })
+      .catch((error: unknown) => {
+        if ((error as { name?: string })?.name !== "AbortError") {
+          setTranslations((current) => ({ ...current, [selected.id]: "Türkçe açıklama şu anda hazırlanamadı. Biraz sonra tekrar deneyebilirsin." }));
+        }
+      })
+      .finally(() => setTranslationLoading(false));
+
+    return () => controller.abort();
+  }, [selected, translations]);
 
   const platforms = useMemo(() => {
     const counts = new Map<string, number>();
@@ -90,11 +123,10 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
         <span className="game-art-fallback">{initials(game.title)}</span>
         {game.coverUrl ? <img src={game.coverUrl} alt={`${game.title} kapak görseli`} loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : null}
         <div className="game-art-shade" />
-        <span className={`presence-badge ${game.devicePresent ? "device" : "archive"}`}>{game.devicePresent ? "UYGULAMADA" : "WEB ARŞİVİ"}</span>
         {game.logoUrl ? <img className="game-logo" src={game.logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <strong>{game.title}</strong>}
         <small>{platformLabel(game.platform || "Enclave")}</small>{game.favorite && <b className="favorite-mark">★</b>}
       </div>
-      <div className="game-info"><span>{game.genre || game.developer || "OYUN"}</span><h3>{game.title}</h3><div><small>{formatMinutes(game.playtimeMinutes)}</small><small>AÇIKLAMA VE DETAYLAR <i>↗</i></small></div></div>
+      <div className="game-info"><span className={`presence-badge ${game.devicePresent ? "device" : "archive"}`}>{game.devicePresent ? "UYGULAMADA" : "WEB ARŞİVİ"}</span><span>{game.genre || game.developer || "OYUN"}</span><h3>{game.title}</h3><div><small>{formatMinutes(game.playtimeMinutes)}</small><small>AÇIKLAMA VE DETAYLAR <i>↗</i></small></div></div>
     </button>)}</div> : <div className="empty-library"><span>⌁</span><h3>Bu filtrede oyun yok</h3><p>Masaüstü uygulamasını açıp ilk web kütüphanesi eşitlemesini yapabilir veya filtrelerini değiştirebilirsin.</p><button className="button primary" onClick={() => { setQuery(""); setPlatform("Tümü"); setScope("all"); }}>Tüm oyunları göster</button></div>}
 
     {selected ? <div className="game-modal-backdrop" role="presentation" onMouseDown={() => setSelected(null)}>
@@ -109,7 +141,7 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
         <div className="game-modal-body">
           <p className="eyebrow"><span /> {platformLabel(selected.platform || "Enclave")} // {selected.devicePresent ? "UYGULAMADA" : "WEB ARŞİVİ"}</p>
           <h2>{selected.title}</h2>
-          <p>{selected.summary || "Bu oyun için açıklama henüz masaüstü uygulamasından eşitlenmedi."}</p>
+          <p>{selected.summary ? (translationLoading ? "Türkçe açıklama hazırlanıyor…" : translations[selected.id] || "Türkçe açıklama hazırlanıyor…") : "Bu oyun için açıklama henüz masaüstü uygulamasından eşitlenmedi."}</p>
           <div className="game-detail-grid"><Detail label="TÜR" value={selected.genre || "—"} /><Detail label="GELİŞTİRİCİ" value={selected.developer || "—"} /><Detail label="OYUN SÜRESİ" value={formatMinutes(selected.playtimeMinutes)} /><Detail label="YAYIN TARİHİ" value={selected.releaseDate || "—"} /><Detail label="PUAN" value={selected.rating ? `${Number(selected.rating).toFixed(1)} / 5` : "—"} /><Detail label="İLK EKLENME" value={formatDate(selected.firstSeenAt)} /></div>
           <small className="read-only-note">Google Drive save sistemi bu arşivden tamamen ayrıdır.</small>
           <form className="web-archive-remove" action="/api/library/delete" method="post" onSubmit={(event) => { if (!window.confirm(`${selected.title} kütüphaneden kaldırılsın mı? Uygulamadaki kütüphane kaydı da otomatik kaldırılır; kurulu oyun dosyalarına ve save dosyalarına dokunulmaz.`)) event.preventDefault(); }}>
