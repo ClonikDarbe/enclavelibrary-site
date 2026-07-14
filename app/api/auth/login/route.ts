@@ -47,5 +47,11 @@ export async function POST(request: Request) {
 function redirectError(message: string) {
   const url = new URL("/login", "https://enclave.local");
   url.searchParams.set("error", message);
-  return NextResponse.redirect(`${url.pathname}${url.search}`, 303);
+  return new NextResponse(null, {
+    status: 303,
+    headers: {
+      Location: `${url.pathname}${url.search}`,
+      "Cache-Control": "no-store",
+    },
+  });
 }
