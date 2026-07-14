@@ -2,8 +2,12 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "enclave-order",
   "main": "./worker/index.ts",
+  "keep_vars": true,
   "compatibility_date": "2026-07-14",
   "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
+  "vars": {
+    "SUPABASE_URL": "https://twuvfkzbftfawdgygnjw.supabase.co"
+  },
   "observability": {
     "enabled": true
   }
