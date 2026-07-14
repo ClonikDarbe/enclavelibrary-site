@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { accessToken } from "@/lib/enclave-auth";
+import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Güvenli giriş" };
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  if (await accessToken()) redirect("/library");
+  const token = await accessToken();
+  const config = supabaseConfig();
+  if (token && config) {
+    const session = await fetch(`${config.url}/auth/v1/user`, { headers: authHeaders(config.key, token), cache: "no-store" });
+    if (session.ok) redirect("/library");
+  }
   const { error } = await searchParams;
   return <main className="auth-shell">
     <Link className="auth-brand" href="/"><span className="brand-mark">E</span><span><b>ENCLAVE</b><small>ORDER</small></span></Link>

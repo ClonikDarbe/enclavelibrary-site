@@ -6,7 +6,12 @@ export async function GET(request: Request) {
   const config = supabaseConfig();
   const refreshToken = (await cookies()).get(REFRESH_COOKIE)?.value;
   const returnTo = safeReturnTo(new URL(request.url).searchParams.get("return_to"));
-  if (!config || !refreshToken) return NextResponse.redirect(new URL("/login", request.url), 303);
+  if (!config || !refreshToken) {
+    const missing = NextResponse.redirect(new URL("/login", request.url), 303);
+    missing.cookies.set(ACCESS_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+    missing.cookies.set(REFRESH_COOKIE, "", { httpOnly: true, path: "/api/auth", maxAge: 0 });
+    return missing;
+  }
 
   const tokenResponse = await fetch(`${config.url}/auth/v1/token?grant_type=refresh_token`, {
     method: "POST", headers: authHeaders(config.key), body: JSON.stringify({ refresh_token: refreshToken }), cache: "no-store",
