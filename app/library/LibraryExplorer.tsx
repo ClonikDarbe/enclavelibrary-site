@@ -69,7 +69,7 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
 
     <div className="library-scope-tabs" aria-label="Arşiv durumu">
       <button className={scope === "all" ? "active" : ""} onClick={() => setScope("all")}><span>TÜM ARŞİV</span><b>{games.length}</b></button>
-      <button className={scope === "device" ? "active" : ""} onClick={() => setScope("device")}><span>BU CİHAZDA</span><b>{deviceCount}</b></button>
+      <button className={scope === "device" ? "active" : ""} onClick={() => setScope("device")}><span>UYGULAMADA</span><b>{deviceCount}</b></button>
       <button className={scope === "archive" ? "active" : ""} onClick={() => setScope("archive")}><span>ARŞİVDE</span><b>{archiveCount}</b></button>
     </div>
 
@@ -90,11 +90,11 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
         <span className="game-art-fallback">{initials(game.title)}</span>
         {game.coverUrl ? <img src={game.coverUrl} alt={`${game.title} kapak görseli`} loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : null}
         <div className="game-art-shade" />
-        <span className={`presence-badge ${game.devicePresent ? "device" : "archive"}`}>{game.devicePresent ? "BU CİHAZDA" : "WEB ARŞİVİ"}</span>
+        <span className={`presence-badge ${game.devicePresent ? "device" : "archive"}`}>{game.devicePresent ? "UYGULAMADA" : "WEB ARŞİVİ"}</span>
         {game.logoUrl ? <img className="game-logo" src={game.logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <strong>{game.title}</strong>}
         <small>{platformLabel(game.platform || "Enclave")}</small>{game.favorite && <b className="favorite-mark">★</b>}
       </div>
-      <div className="game-info"><span>{game.genre || game.developer || "OYUN"}</span><h3>{game.title}</h3><p>{game.summary || `${game.developer || ""} ${game.publisher || ""}`.trim() || "Detayları görmek için kartı aç."}</p><div><small>{formatMinutes(game.playtimeMinutes)}</small><small>DETAYLAR <i>↗</i></small></div></div>
+      <div className="game-info"><span>{game.genre || game.developer || "OYUN"}</span><h3>{game.title}</h3><div><small>{formatMinutes(game.playtimeMinutes)}</small><small>AÇIKLAMA VE DETAYLAR <i>↗</i></small></div></div>
     </button>)}</div> : <div className="empty-library"><span>⌁</span><h3>Bu filtrede oyun yok</h3><p>Masaüstü uygulamasını açıp ilk web kütüphanesi eşitlemesini yapabilir veya filtrelerini değiştirebilirsin.</p><button className="button primary" onClick={() => { setQuery(""); setPlatform("Tümü"); setScope("all"); }}>Tüm oyunları göster</button></div>}
 
     {selected ? <div className="game-modal-backdrop" role="presentation" onMouseDown={() => setSelected(null)}>
@@ -107,12 +107,12 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
           {selected.logoUrl ? <img className="game-modal-logo" src={selected.logoUrl} alt={selected.title} referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <h3>{selected.title}</h3>}
         </div>
         <div className="game-modal-body">
-          <p className="eyebrow"><span /> {platformLabel(selected.platform || "Enclave")} // {selected.devicePresent ? "BU CİHAZDA" : "WEB ARŞİVİ"}</p>
+          <p className="eyebrow"><span /> {platformLabel(selected.platform || "Enclave")} // {selected.devicePresent ? "UYGULAMADA" : "WEB ARŞİVİ"}</p>
           <h2>{selected.title}</h2>
           <p>{selected.summary || "Bu oyun için açıklama henüz masaüstü uygulamasından eşitlenmedi."}</p>
           <div className="game-detail-grid"><Detail label="TÜR" value={selected.genre || "—"} /><Detail label="GELİŞTİRİCİ" value={selected.developer || "—"} /><Detail label="OYUN SÜRESİ" value={formatMinutes(selected.playtimeMinutes)} /><Detail label="YAYIN TARİHİ" value={selected.releaseDate || "—"} /><Detail label="PUAN" value={selected.rating ? `${Number(selected.rating).toFixed(1)} / 5` : "—"} /><Detail label="İLK EKLENME" value={formatDate(selected.firstSeenAt)} /></div>
           <small className="read-only-note">Google Drive save sistemi bu arşivden tamamen ayrıdır.</small>
-          <form className="web-archive-remove" action="/api/library/delete" method="post" onSubmit={(event) => { if (!window.confirm(`${selected.title} web arşivinden kaldırılsın mı? Bu işlem masaüstündeki oyuna ve save dosyalarına dokunmaz.`)) event.preventDefault(); }}>
+          <form className="web-archive-remove" action="/api/library/delete" method="post" onSubmit={(event) => { if (!window.confirm(`${selected.title} kütüphaneden kaldırılsın mı? Uygulamadaki kütüphane kaydı da otomatik kaldırılır; kurulu oyun dosyalarına ve save dosyalarına dokunulmaz.`)) event.preventDefault(); }}>
             <input type="hidden" name="gameKey" value={selected.id} />
             <button type="submit">Web arşivinden kaldır</button>
           </form>
