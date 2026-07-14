@@ -50,7 +50,7 @@ const worker = {
     secured.headers.set("Cross-Origin-Resource-Policy", "same-origin");
     secured.headers.set(
       "Content-Security-Policy",
-      "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; upgrade-insecure-requests",
+      "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; upgrade-insecure-requests",
     );
     if (url.pathname.startsWith("/api/auth") || url.pathname === "/library") {
       secured.headers.set("Cache-Control", "no-store, private");
