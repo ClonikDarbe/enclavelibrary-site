@@ -5,7 +5,7 @@ export const REFRESH_COOKIE = "enclave_refresh";
 
 export function supabaseConfig() {
   const url = (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL)?.trim();
-  const key = (process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY)?.trim();
+  const key = (process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY)?.trim();
   if (!url || !key) return null;
   return { url: url.replace(/\/$/, ""), key };
 }
@@ -17,7 +17,7 @@ export async function accessToken() {
 export function authHeaders(key: string, token?: string) {
   return {
     apikey: key,
-    Authorization: `Bearer ${token || key}`,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     "Content-Type": "application/json",
   };
 }

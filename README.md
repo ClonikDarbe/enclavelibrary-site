@@ -33,9 +33,9 @@ Cloudflare'da açılan Worker adının `wrangler.jsonc` içindeki `enclave-order
 **Settings → Variables & Secrets** bölümüne aşağıdakileri ekle. Bunlar Build variables alanına değil, Worker'ın çalışma zamanı değişkenlerine eklenmelidir.
 
 - `SUPABASE_URL`: Supabase proje URL'si
-- `SUPABASE_ANON_KEY`: Supabase anon/publishable anahtarı; secret olarak işaretle
+- `SUPABASE_PUBLISHABLE_KEY`: Supabase publishable anahtarı (`sb_publishable_...`). Eski projelerde `SUPABASE_ANON_KEY` de desteklenir.
 
-Hiçbir `.env` dosyasını veya Supabase service-role anahtarını GitHub'a yükleme.
+Publishable/anon anahtarı düşük yetkilidir; erişim RLS ile sınırlandırılır. Yine de değeri kodda tutmak yerine Cloudflare değişkeni olarak tanımla. Hiçbir `.env` dosyasını, `sb_secret_...` anahtarını veya Supabase `service_role` anahtarını GitHub'a yükleme.
 
 ## Güvenlik kontrol listesi
 
