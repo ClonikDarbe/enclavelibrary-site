@@ -1,5 +1,5 @@
 {
-  "name": "site-creator-vinext-starter",
+  "name": "enclave-order-web",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -9,6 +9,10 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
+    "preview": "npm run build && vite preview",
+    "deploy": "npm run build && wrangler deploy",
+    "deploy:built": "wrangler deploy",
+    "preview:upload": "wrangler versions upload",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"

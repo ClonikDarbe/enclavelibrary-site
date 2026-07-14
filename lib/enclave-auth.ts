@@ -4,8 +4,8 @@ export const ACCESS_COOKIE = "enclave_access";
 export const REFRESH_COOKIE = "enclave_refresh";
 
 export function supabaseConfig() {
-  const url = process.env.VITE_SUPABASE_URL?.trim();
-  const key = process.env.VITE_SUPABASE_ANON_KEY?.trim();
+  const url = (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL)?.trim();
+  const key = (process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY)?.trim();
   if (!url || !key) return null;
   return { url: url.replace(/\/$/, ""), key };
 }
