@@ -38,7 +38,7 @@ test("keeps authentication server-side and the library read-only", async () => {
   assert.match(loginRoute, /httpOnly:\s*true/);
   assert.match(loginRoute, /sameSite:\s*"strict"/);
   assert.match(authHelper, /SUPABASE_PUBLISHABLE_KEY/);
-  assert.match(libraryPage, /entity_type=eq\.game/);
+  assert.match(libraryPage, /enclave_web_library/);
   assert.match(libraryPage, /salt okunur/i);
   assert.doesNotMatch(libraryPage, /insert\(|update\(|delete\(/i);
   assert.match(wrangler, /"name":\s*"enclave-order"/);

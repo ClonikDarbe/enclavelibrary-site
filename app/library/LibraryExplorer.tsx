@@ -5,6 +5,9 @@ import { useMemo, useState } from "react";
 export type LibraryGame = {
   id: string;
   updatedAt: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  devicePresent: boolean;
   title: string;
   platform?: string;
   launcher?: string;
@@ -24,13 +27,17 @@ export type LibraryGame = {
   achievementsTotal?: number;
 };
 
-type Props = { games: LibraryGame[]; latestSync?: string };
+type Props = { games: LibraryGame[]; latestSync?: string; setupPending?: boolean };
+type Scope = "all" | "device" | "archive";
 
-export default function LibraryExplorer({ games, latestSync }: Props) {
+export default function LibraryExplorer({ games, latestSync, setupPending = false }: Props) {
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState("Tümü");
+  const [scope, setScope] = useState<Scope>("all");
   const [sort, setSort] = useState("title");
   const [selected, setSelected] = useState<LibraryGame | null>(null);
+  const deviceCount = games.filter((game) => game.devicePresent).length;
+  const archiveCount = games.length - deviceCount;
 
   const platforms = useMemo(() => {
     const counts = new Map<string, number>();
@@ -44,19 +51,26 @@ export default function LibraryExplorer({ games, latestSync }: Props) {
   const visibleGames = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("tr");
     return games
+      .filter((game) => scope === "all" || (scope === "device" ? game.devicePresent : !game.devicePresent))
       .filter((game) => platform === "Tümü" || (game.platform || "Diğer") === platform)
       .filter((game) => !normalized || `${game.title} ${game.genre || ""} ${game.developer || ""}`.toLocaleLowerCase("tr").includes(normalized))
       .sort((a, b) => {
         if (sort === "playtime") return (Number(b.playtimeMinutes) || 0) - (Number(a.playtimeMinutes) || 0);
-        if (sort === "recent") return Date.parse(b.lastPlayed || b.updatedAt) - Date.parse(a.lastPlayed || a.updatedAt);
+        if (sort === "recent") return Date.parse(b.lastPlayed || b.lastSeenAt) - Date.parse(a.lastPlayed || a.lastSeenAt);
         return a.title.localeCompare(b.title, "tr");
       });
-  }, [games, platform, query, sort]);
+  }, [games, platform, query, scope, sort]);
 
   return <section className="library-content">
     <div className="library-title">
       <div><p className="eyebrow"><span /> SENİN ARŞİVİN</p><h2>Oyun kasası</h2></div>
-      <span>{games.length} oyun • {latestSync ? `${formatDate(latestSync)} senkronize` : "Bulut bağlantısı aktif"}</span>
+      <span>{games.length} oyun • {latestSync ? `${formatDate(latestSync)} senkronize` : "İlk eşitleme bekleniyor"}</span>
+    </div>
+
+    <div className="library-scope-tabs" aria-label="Arşiv durumu">
+      <button className={scope === "all" ? "active" : ""} onClick={() => setScope("all")}><span>TÜM ARŞİV</span><b>{games.length}</b></button>
+      <button className={scope === "device" ? "active" : ""} onClick={() => setScope("device")}><span>BU CİHAZDA</span><b>{deviceCount}</b></button>
+      <button className={scope === "archive" ? "active" : ""} onClick={() => setScope("archive")}><span>ARŞİVDE</span><b>{archiveCount}</b></button>
     </div>
 
     <div className="library-toolbar" aria-label="Kütüphane araçları">
@@ -69,18 +83,19 @@ export default function LibraryExplorer({ games, latestSync }: Props) {
       {platforms.map(([name, count]) => <button key={name} className={platform === name ? "active" : ""} onClick={() => setPlatform(name)} role="tab" aria-selected={platform === name}><span>{platformLabel(name)}</span><b>{count}</b></button>)}
     </div>
 
-    <div className="library-result-row"><p><b>{visibleGames.length}</b> oyun gösteriliyor</p>{query || platform !== "Tümü" ? <button onClick={() => { setQuery(""); setPlatform("Tümü"); }}>Filtreleri temizle</button> : null}</div>
+    <div className="library-result-row"><p><b>{visibleGames.length}</b> oyun gösteriliyor</p>{query || platform !== "Tümü" || scope !== "all" ? <button onClick={() => { setQuery(""); setPlatform("Tümü"); setScope("all"); }}>Filtreleri temizle</button> : null}</div>
 
-    {visibleGames.length ? <div className="game-grid">{visibleGames.map((game) => <button className="game-card" key={game.id} onClick={() => setSelected(game)}>
+    {setupPending ? <div className="empty-library setup-library"><span>◇</span><h3>Web arşivi kurulmayı bekliyor</h3><p>Yeni güvenli kütüphane tablosu kurulduktan ve masaüstü uygulaması ilk eşitlemeyi yaptıktan sonra oyunların burada görünecek.</p></div> : visibleGames.length ? <div className="game-grid">{visibleGames.map((game) => <button className={`game-card${game.devicePresent ? "" : " archived"}`} key={game.id} onClick={() => setSelected(game)}>
       <div className="game-art">
         <span className="game-art-fallback">{initials(game.title)}</span>
         {game.coverUrl ? <img src={game.coverUrl} alt={`${game.title} kapak görseli`} loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : null}
         <div className="game-art-shade" />
+        <span className={`presence-badge ${game.devicePresent ? "device" : "archive"}`}>{game.devicePresent ? "BU CİHAZDA" : "WEB ARŞİVİ"}</span>
         {game.logoUrl ? <img className="game-logo" src={game.logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <strong>{game.title}</strong>}
         <small>{platformLabel(game.platform || "Enclave")}</small>{game.favorite && <b className="favorite-mark">★</b>}
       </div>
       <div className="game-info"><span>{game.genre || game.developer || "OYUN"}</span><h3>{game.title}</h3><p>{game.summary || `${game.developer || ""} ${game.publisher || ""}`.trim() || "Detayları görmek için kartı aç."}</p><div><small>{formatMinutes(game.playtimeMinutes)}</small><small>DETAYLAR <i>↗</i></small></div></div>
-    </button>)}</div> : <div className="empty-library"><span>⌁</span><h3>Bu filtrede oyun yok</h3><p>Arama kelimeni veya seçili platformu değiştirerek tekrar deneyebilirsin.</p><button className="button primary" onClick={() => { setQuery(""); setPlatform("Tümü"); }}>Tüm oyunları göster</button></div>}
+    </button>)}</div> : <div className="empty-library"><span>⌁</span><h3>Bu filtrede oyun yok</h3><p>Masaüstü uygulamasını açıp ilk web kütüphanesi eşitlemesini yapabilir veya filtrelerini değiştirebilirsin.</p><button className="button primary" onClick={() => { setQuery(""); setPlatform("Tümü"); setScope("all"); }}>Tüm oyunları göster</button></div>}
 
     {selected ? <div className="game-modal-backdrop" role="presentation" onMouseDown={() => setSelected(null)}>
       <article className="game-modal" role="dialog" aria-modal="true" aria-label={`${selected.title} detayları`} onMouseDown={(event) => event.stopPropagation()}>
@@ -92,11 +107,11 @@ export default function LibraryExplorer({ games, latestSync }: Props) {
           {selected.logoUrl ? <img className="game-modal-logo" src={selected.logoUrl} alt={selected.title} referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <h3>{selected.title}</h3>}
         </div>
         <div className="game-modal-body">
-          <p className="eyebrow"><span /> {platformLabel(selected.platform || "Enclave")}</p>
+          <p className="eyebrow"><span /> {platformLabel(selected.platform || "Enclave")} // {selected.devicePresent ? "BU CİHAZDA" : "WEB ARŞİVİ"}</p>
           <h2>{selected.title}</h2>
           <p>{selected.summary || "Bu oyun için açıklama henüz masaüstü uygulamasından eşitlenmedi."}</p>
-          <div className="game-detail-grid"><Detail label="TÜR" value={selected.genre || "—"} /><Detail label="GELİŞTİRİCİ" value={selected.developer || "—"} /><Detail label="OYUN SÜRESİ" value={formatMinutes(selected.playtimeMinutes)} /><Detail label="YAYIN TARİHİ" value={selected.releaseDate || "—"} /><Detail label="PUAN" value={selected.rating ? `${Number(selected.rating).toFixed(1)} / 5` : "—"} /><Detail label="BAŞARIM" value={selected.achievementsTotal ? `${selected.achievementsUnlocked || 0} / ${selected.achievementsTotal}` : "—"} /></div>
-          <small className="read-only-note">SALT OKUNUR • Oynamak ve düzenlemek için masaüstü uygulamasını kullan.</small>
+          <div className="game-detail-grid"><Detail label="TÜR" value={selected.genre || "—"} /><Detail label="GELİŞTİRİCİ" value={selected.developer || "—"} /><Detail label="OYUN SÜRESİ" value={formatMinutes(selected.playtimeMinutes)} /><Detail label="YAYIN TARİHİ" value={selected.releaseDate || "—"} /><Detail label="PUAN" value={selected.rating ? `${Number(selected.rating).toFixed(1)} / 5` : "—"} /><Detail label="İLK EKLENME" value={formatDate(selected.firstSeenAt)} /></div>
+          <small className="read-only-note">SALT OKUNUR • Google Drive save sistemi bu arşivden tamamen ayrıdır.</small>
         </div>
       </article>
     </div> : null}
