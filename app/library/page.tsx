@@ -40,7 +40,7 @@ export default async function Library() {
   const fields = "game_key,title,platform,launcher,cover_url,banner_url,logo_url,genre,summary,developer,publisher,release_date,playtime_minutes,last_played,favorite,rating,achievements_unlocked,achievements_total,device_present,first_seen_at,last_seen_at,updated_at";
   const [userResponse, gamesResponse] = await Promise.all([
     fetch(`${config.url}/auth/v1/user`, { headers: authHeaders(config.key, token), cache: "no-store" }),
-    fetch(`${config.url}/rest/v1/enclave_web_library?select=${fields}&order=last_seen_at.desc`, { headers: authHeaders(config.key, token), cache: "no-store" }),
+    fetch(`${config.url}/rest/v1/enclave_web_library?select=${fields}&hidden_from_web=eq.false&order=last_seen_at.desc`, { headers: authHeaders(config.key, token), cache: "no-store" }),
   ]);
   if (userResponse.status === 401 || gamesResponse.status === 401) redirect("/api/auth/refresh?return_to=/library");
   if (!userResponse.ok) redirect("/login?error=Oturum+doğrulanamadı.");

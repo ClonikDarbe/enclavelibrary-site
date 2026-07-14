@@ -111,7 +111,11 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
           <h2>{selected.title}</h2>
           <p>{selected.summary || "Bu oyun için açıklama henüz masaüstü uygulamasından eşitlenmedi."}</p>
           <div className="game-detail-grid"><Detail label="TÜR" value={selected.genre || "—"} /><Detail label="GELİŞTİRİCİ" value={selected.developer || "—"} /><Detail label="OYUN SÜRESİ" value={formatMinutes(selected.playtimeMinutes)} /><Detail label="YAYIN TARİHİ" value={selected.releaseDate || "—"} /><Detail label="PUAN" value={selected.rating ? `${Number(selected.rating).toFixed(1)} / 5` : "—"} /><Detail label="İLK EKLENME" value={formatDate(selected.firstSeenAt)} /></div>
-          <small className="read-only-note">SALT OKUNUR • Google Drive save sistemi bu arşivden tamamen ayrıdır.</small>
+          <small className="read-only-note">Google Drive save sistemi bu arşivden tamamen ayrıdır.</small>
+          <form className="web-archive-remove" action="/api/library/delete" method="post" onSubmit={(event) => { if (!window.confirm(`${selected.title} web arşivinden kaldırılsın mı? Bu işlem masaüstündeki oyuna ve save dosyalarına dokunmaz.`)) event.preventDefault(); }}>
+            <input type="hidden" name="gameKey" value={selected.id} />
+            <button type="submit">Web arşivinden kaldır</button>
+          </form>
         </div>
       </article>
     </div> : null}
