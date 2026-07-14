@@ -8,9 +8,6 @@ interface Env {
   SUPABASE_URL?: string;
   SUPABASE_PUBLISHABLE_KEY?: string;
   SUPABASE_ANON_KEY?: string;
-  AI?: {
-    run(model: string, input: Record<string, unknown>): Promise<unknown>;
-  };
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -42,8 +39,8 @@ const worker = {
     if (env.SUPABASE_PUBLISHABLE_KEY) process.env.SUPABASE_PUBLISHABLE_KEY = env.SUPABASE_PUBLISHABLE_KEY;
     if (env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
 
-    if (url.pathname === "/api/translate") {
-      return handleTranslationRequest(request, env, ctx);
+    if (url.pathname === "/api/steam-summary") {
+      return handleSteamSummaryRequest(request, env, ctx);
     }
 
     if (url.pathname === "/_vinext/image") {
@@ -78,12 +75,9 @@ const worker = {
 
 export default worker;
 
-async function handleTranslationRequest(request: Request, env: Env, ctx: ExecutionContext) {
-  if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
-  if (Number(request.headers.get("content-length") || 0) > 8_192) return new Response("İstek çok büyük.", { status: 413 });
-
+async function handleSteamSummaryRequest(request: Request, env: Env, ctx: ExecutionContext) {
+  if (request.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
   const url = new URL(request.url);
-  if (request.headers.get("origin") !== url.origin) return new Response("Geçersiz istek.", { status: 403 });
 
   const key = env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY;
   const token = readCookie(request.headers.get("cookie") || "", "enclave_access");
@@ -94,36 +88,59 @@ async function handleTranslationRequest(request: Request, env: Env, ctx: Executi
   });
   if (!userResponse.ok) return new Response("Oturum gerekli.", { status: 401 });
 
-  const payload = await request.json().catch(() => null) as { text?: unknown } | null;
-  const source = typeof payload?.text === "string" ? payload.text.trim() : "";
-  if (!source || source.length > 4_000) return new Response("Geçersiz açıklama.", { status: 400 });
-  if (!env.AI) return new Response("Çeviri servisi kullanılamıyor.", { status: 503 });
-
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
-  const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  const cacheKey = new Request(`${url.origin}/__enclave_translation/${hash}`);
+  const match = url.searchParams.get("gameKey")?.match(/^steam:(\d{1,12})$/i);
+  if (!match) return Response.json({ summary: null }, { status: 200 });
+  const appId = match[1];
+  const cacheKey = new Request(`${url.origin}/__enclave_steam_summary/${appId}`);
   const edgeCache = (caches as CacheStorage & { default: Cache }).default;
   const cached = await edgeCache.match(cacheKey);
   if (cached) return cached;
 
-  const result = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fast", {
-    messages: [
-      { role: "system", content: "Oyun açıklamalarını doğal ve akıcı Türkiye Türkçesine çevir. Oyun, kişi, stüdyo ve marka adlarını değiştirme. Metin zaten Türkçeyse anlamını bozmadan aynen koru. Yalnızca çevrilmiş açıklamayı yaz; başlık, not, tırnak veya açıklama ekleme." },
-      { role: "user", content: source },
-    ],
-    temperature: 0,
-    max_tokens: 1_200,
-  }) as { response?: unknown };
-  const translation = typeof result?.response === "string" ? result.response.trim().replace(/^['\"]|['\"]$/g, "") : "";
-  if (!translation) return new Response("Çeviri oluşturulamadı.", { status: 502 });
+  const endpoint = `https://store.steampowered.com/api/appdetails?appids=${appId}&cc=tr&filters=basic`;
+  const [turkishResponse, englishResponse] = await Promise.all([
+    fetch(`${endpoint}&l=turkish`, { headers: { "Accept-Language": "tr-TR,tr;q=0.9" } }),
+    fetch(`${endpoint}&l=english`, { headers: { "Accept-Language": "en-US,en;q=0.9" } }),
+  ]);
+  const [turkishPayload, englishPayload] = await Promise.all([
+    turkishResponse.ok ? turkishResponse.json().catch(() => null) : null,
+    englishResponse.ok ? englishResponse.json().catch(() => null) : null,
+  ]);
+  const turkish = steamDescription(turkishPayload, appId);
+  const english = steamDescription(englishPayload, appId);
+  const summary = turkish && (!english || normalizeText(turkish) !== normalizeText(english)) ? turkish : null;
 
-  const response = Response.json({ translation }, {
-    headers: { "Cache-Control": "private, max-age=2592000", "X-Content-Type-Options": "nosniff" },
+  const response = Response.json({ summary }, {
+    headers: { "Cache-Control": "private, max-age=604800", "X-Content-Type-Options": "nosniff" },
   });
   const cacheResponse = new Response(response.clone().body, response);
-  cacheResponse.headers.set("Cache-Control", "public, max-age=2592000");
+  cacheResponse.headers.set("Cache-Control", "public, max-age=604800");
   ctx.waitUntil(edgeCache.put(cacheKey, cacheResponse));
   return response;
+}
+
+function steamDescription(payload: unknown, appId: string) {
+  const entry = payload && typeof payload === "object" ? (payload as Record<string, unknown>)[appId] : null;
+  const data = entry && typeof entry === "object" ? (entry as { success?: boolean; data?: unknown }).data : null;
+  if (!data || typeof data !== "object") return "";
+  const record = data as { short_description?: unknown; detailed_description?: unknown };
+  const value = typeof record.short_description === "string" ? record.short_description : typeof record.detailed_description === "string" ? record.detailed_description : "";
+  return decodeHtml(value.replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
+}
+
+function normalizeText(value: string) {
+  return value.toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]+/gi, " ").trim();
+}
+
+function decodeHtml(value: string) {
+  const entities: Record<string, string> = { amp: "&", quot: "\"", apos: "'", lt: "<", gt: ">", nbsp: " " };
+  return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (_, entity: string) => {
+    if (entity[0] === "#") {
+      const hex = entity[1]?.toLowerCase() === "x";
+      const code = Number.parseInt(entity.slice(hex ? 2 : 1), hex ? 16 : 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : "";
+    }
+    return entities[entity.toLowerCase()] ?? "";
+  });
 }
 
 function readCookie(header: string, name: string) {

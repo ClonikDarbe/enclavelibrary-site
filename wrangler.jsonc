@@ -8,9 +8,6 @@
   "vars": {
     "SUPABASE_URL": "https://twuvfkzbftfawdgygnjw.supabase.co"
   },
-  "ai": {
-    "binding": "AI"
-  },
   "observability": {
     "enabled": true
   }

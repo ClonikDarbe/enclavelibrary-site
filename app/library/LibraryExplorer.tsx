@@ -36,41 +36,51 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
   const [scope, setScope] = useState<Scope>("all");
   const [sort, setSort] = useState("title");
   const [selected, setSelected] = useState<LibraryGame | null>(null);
-  const [translations, setTranslations] = useState<Record<string, string>>({});
-  const [translationLoading, setTranslationLoading] = useState(false);
+  const [localizedSummaries, setLocalizedSummaries] = useState<Record<string, string>>({});
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const deviceCount = games.filter((game) => game.devicePresent).length;
   const archiveCount = games.length - deviceCount;
 
   useEffect(() => {
-    if (!selected?.summary || translations[selected.id]) {
-      setTranslationLoading(false);
+    if (!selected || localizedSummaries[selected.id]) {
+      setSummaryLoading(false);
+      return;
+    }
+
+    if (selected.summary && isLikelyTurkish(selected.summary)) {
+      setLocalizedSummaries((current) => ({ ...current, [selected.id]: selected.summary! }));
+      setSummaryLoading(false);
+      return;
+    }
+
+    if (!/^steam:\d+$/i.test(selected.id)) {
+      setLocalizedSummaries((current) => ({ ...current, [selected.id]: "Bu oyun için Türkçe açıklama bulunamadı." }));
+      setSummaryLoading(false);
       return;
     }
 
     const controller = new AbortController();
-    setTranslationLoading(true);
-    void fetch("/api/translate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: selected.summary }),
+    setSummaryLoading(true);
+    void fetch(`/api/steam-summary?gameKey=${encodeURIComponent(selected.id)}`, {
+      method: "GET",
       signal: controller.signal,
     })
       .then(async (response) => {
         if (!response.ok) throw new Error("translation_failed");
-        return response.json() as Promise<{ translation?: string }>;
+        return response.json() as Promise<{ summary?: string | null }>;
       })
       .then((payload) => {
-        if (payload.translation) setTranslations((current) => ({ ...current, [selected.id]: payload.translation! }));
+        setLocalizedSummaries((current) => ({ ...current, [selected.id]: payload.summary || "Bu oyun için Türkçe açıklama bulunamadı." }));
       })
       .catch((error: unknown) => {
         if ((error as { name?: string })?.name !== "AbortError") {
-          setTranslations((current) => ({ ...current, [selected.id]: "Türkçe açıklama şu anda hazırlanamadı. Biraz sonra tekrar deneyebilirsin." }));
+          setLocalizedSummaries((current) => ({ ...current, [selected.id]: "Türkçe açıklama şu anda alınamadı. Biraz sonra tekrar deneyebilirsin." }));
         }
       })
-      .finally(() => setTranslationLoading(false));
+      .finally(() => setSummaryLoading(false));
 
     return () => controller.abort();
-  }, [selected, translations]);
+  }, [localizedSummaries, selected]);
 
   const platforms = useMemo(() => {
     const counts = new Map<string, number>();
@@ -141,7 +151,7 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
         <div className="game-modal-body">
           <p className="eyebrow"><span /> {platformLabel(selected.platform || "Enclave")} // {selected.devicePresent ? "UYGULAMADA" : "WEB ARŞİVİ"}</p>
           <h2>{selected.title}</h2>
-          <p>{selected.summary ? (translationLoading ? "Türkçe açıklama hazırlanıyor…" : translations[selected.id] || "Türkçe açıklama hazırlanıyor…") : "Bu oyun için açıklama henüz masaüstü uygulamasından eşitlenmedi."}</p>
+          <p>{summaryLoading ? "Türkçe mağaza açıklaması yükleniyor…" : localizedSummaries[selected.id] || "Türkçe açıklama kontrol ediliyor…"}</p>
           <div className="game-detail-grid"><Detail label="TÜR" value={selected.genre || "—"} /><Detail label="GELİŞTİRİCİ" value={selected.developer || "—"} /><Detail label="OYUN SÜRESİ" value={formatMinutes(selected.playtimeMinutes)} /><Detail label="YAYIN TARİHİ" value={selected.releaseDate || "—"} /><Detail label="PUAN" value={selected.rating ? `${Number(selected.rating).toFixed(1)} / 5` : "—"} /><Detail label="İLK EKLENME" value={formatDate(selected.firstSeenAt)} /></div>
           <small className="read-only-note">Google Drive save sistemi bu arşivden tamamen ayrıdır.</small>
           <form className="web-archive-remove" action="/api/library/delete" method="post" onSubmit={(event) => { if (!window.confirm(`${selected.title} kütüphaneden kaldırılsın mı? Uygulamadaki kütüphane kaydı da otomatik kaldırılır; kurulu oyun dosyalarına ve save dosyalarına dokunulmaz.`)) event.preventDefault(); }}>
@@ -158,6 +168,11 @@ function Detail({ label, value }: { label: string; value: string }) { return <di
 function initials(title: string) { return title.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(); }
 function formatMinutes(value?: number) { const minutes = Number(value) || 0; return minutes >= 60 ? `${Math.round(minutes / 6) / 10} saat` : `${minutes} dk`; }
 function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Buluttan" : new Intl.DateTimeFormat("tr", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date); }
+function isLikelyTurkish(value: string) {
+  const text = value.toLocaleLowerCase("tr");
+  if (/[çğıöşü]/i.test(text)) return true;
+  return (text.match(/\b(?:ve|bir|bu|ile|için|oyun|olarak|oyuncu|dünya|karşı|kendi|olan|yeni)\b/g) || []).length >= 2;
+}
 function platformLabel(value: string) {
   const labels: Record<string, string> = { "Epic Games": "EPIC", "GOG Galaxy": "GOG", "Ubisoft Connect": "UBISOFT", "Rockstar Games": "ROCKSTAR", "Riot Games": "RIOT", "Amazon Games": "AMAZON", "Harici Oyunlar": "HARİCİ" };
   return labels[value] || value.toLocaleUpperCase("tr");
