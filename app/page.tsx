@@ -24,30 +24,30 @@ export default function Home() {
       <section className="hero">
         <div className="hero-grid" aria-hidden="true" />
         <div className="hero-copy">
-          <p className="eyebrow"><span /> OYUN ARŞİVİN. TEK MERKEZ.</p>
-          <h1>Kütüphanen<br />seninle <em>yaşasın.</em></h1>
-          <p className="hero-lead">Steam’den Epic’e, GOG’dan Xbox’a kadar tüm oyun dünyanı tek, hızlı ve güvenli bir merkezde birleştir.</p>
+          <p className="eyebrow"><span /> ENCLAVE 2.0 // CLOUD ONLINE</p>
+          <h1>Oyun dünyan.<br /><em>Tek bir evren.</em></h1>
+          <p className="hero-lead">Launcher kalabalığını sustur. Steam’den Epic’e, GOG’dan Xbox’a tüm koleksiyonunu tek bir hızlı ve güvenli oyuncu merkezinde topla.</p>
           <div className="hero-actions">
-            <a className="button primary" href={releaseUrl} rel="noreferrer">Windows için indir <span>↗</span></a>
+            <a className="button primary" href={releaseUrl} rel="noreferrer">Şimdi indir <span>↗</span></a>
             <Link className="button ghost" href="/login">Kütüphanemi görüntüle</Link>
           </div>
           <div className="trust-row">
-            <span><i>✓</i> Ücretsiz</span><span><i>✓</i> Windows 10/11</span><span><i>✓</i> Güvenli bulut eşitleme</span>
+            <span><i>◆</i> 8+ platform</span><span><i>◆</i> Salt okunur web</span><span><i>◆</i> Güvenli cloud sync</span>
           </div>
         </div>
 
-        <div className="hero-visual" aria-label="Enclave Order uygulama vitrini">
+        <div className="hero-visual" aria-label="Enclave Order oyuncu merkezi vitrini">
           <div className="orbit orbit-one" /><div className="orbit orbit-two" />
           <div className="vault-card">
-            <div className="vault-top"><span>ENCLAVE // LIBRARY</span><b>ONLINE</b></div>
+            <div className="vault-top"><span>ENCLAVE // PLAYER HUB</span><b>ONLINE</b></div>
             <div className="vault-content">
-              <p>TOPLAM ARŞİV</p><strong>247</strong><small>oyun tek merkezde</small>
+              <p>KÜTÜPHANE</p><strong>247</strong><small>oyun • tek evren</small>
               <div className="platform-stack"><span>ST</span><span>EP</span><span>GO</span><span>XB</span><i>+5</i></div>
             </div>
-            <div className="vault-footer"><span>SECURE CLOUD LINK</span><b>ENCRYPTED</b></div>
+            <div className="vault-footer"><span>ZERO-LAG CLOUD LINK</span><b>SYNCED</b></div>
           </div>
           <div className="signal-card signal-a"><span>SON OYNANAN</span><b>Counter-Strike 2</b><small>128 saat</small></div>
-          <div className="signal-card signal-b"><span>BULUT DURUMU</span><b>Güncel</b><small>14 sn önce</small></div>
+          <div className="signal-card signal-b"><span>CLOUD STATUS</span><b>Senkronize</b><small>14 sn önce</small></div>
         </div>
       </section>
 
@@ -58,7 +58,7 @@ export default function Home() {
       <section className="feature-section" id="features">
         <div className="section-heading">
           <p className="eyebrow"><span /> TEK UYGULAMA. TAM KONTROL.</p>
-          <h2>Dağınıklığı kapat.<br /><em>Oyuna odaklan.</em></h2>
+          <h2>Launcher kalabalığını sil.<br /><em>Oyuna gir.</em></h2>
         </div>
         <div className="feature-grid">
           <article className="feature-card feature-main">
@@ -75,18 +75,18 @@ export default function Home() {
         <div className="security-copy">
           <p className="eyebrow light"><span /> GÜVENLİK, EKLENTİ DEĞİL TEMELDİR.</p>
           <h2>Verin değil,<br /><em>oyunların görünür.</em></h2>
-          <p>Web paneli salt okunur tasarlandı. Parolalar Enclave sunucularında tutulmaz; oturumlar güvenli, HttpOnly çerezlerle korunur ve her kullanıcı yalnızca kendi kayıtlarına erişebilir.</p>
-          <ul><li><b>RLS</b> Kullanıcı bazlı veri izolasyonu</li><li><b>EDGE</b> DDoS filtreleme ve önbellekleme</li><li><b>ZERO WRITE</b> Web kütüphanesinde veri değiştirme yok</li></ul>
+          <p>Web paneli salt okunur tasarlandı. Parolalar Enclave sunucularında tutulmaz; oturumlar güvenli HttpOnly çerezlerle korunur ve her oyuncu yalnızca kendi kayıtlarına erişebilir.</p>
+          <ul><li><b>RLS</b> Kullanıcı bazlı veri izolasyonu</li><li><b>EDGE</b> Cloudflare DDoS filtreleme</li><li><b>ZERO WRITE</b> Web kütüphanesinde veri değiştirme yok</li></ul>
         </div>
         <div className="shield" aria-hidden="true"><div><Mark /><span>ENCLAVE<br />SECURE ACCESS</span><b>PROTECTED</b></div></div>
       </section>
 
       <section className="cta-section">
-        <p className="eyebrow"><span /> SİSTEM HAZIR</p><h2>Arşivine dön.</h2><p>Enclave Order’ı indir veya güvenli web panelinden kütüphanene göz at.</p>
+        <p className="eyebrow"><span /> SİSTEM HAZIR</p><h2>Sıradaki oyun<br />seni bekliyor.</h2><p>Enclave Order’ı indir veya güvenli web panelinden koleksiyonuna göz at.</p>
         <div className="hero-actions centered"><a className="button primary" href={releaseUrl}>Son sürümü indir <span>↗</span></a><Link className="button dark" href="/login">Web hesabına gir</Link></div>
       </section>
 
-      <footer><Link className="brand" href="/"><Mark /><span><b>ENCLAVE</b><small>ORDER</small></span></Link><p>© 2026 Enclave Studios. Oyunların, senin düzenin.</p><div><a href="#security">Güvenlik</a><a href={releaseUrl}>GitHub</a></div></footer>
+      <footer><Link className="brand" href="/"><Mark /><span><b>ENCLAVE</b><small>ORDER</small></span></Link><p>© 2026 Enclave Studios. Oyunların, senin evrenin.</p><div><a href="#security">Güvenlik</a><a href={releaseUrl}>GitHub</a></div></footer>
     </main>
   );
 }
