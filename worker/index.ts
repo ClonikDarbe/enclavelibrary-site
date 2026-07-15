@@ -43,6 +43,10 @@ const worker = {
       return handleSteamSummaryRequest(request, env, ctx);
     }
 
+    if (url.pathname === "/download/windows") {
+      return handleWindowsDownload(request, ctx);
+    }
+
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {
@@ -74,6 +78,51 @@ const worker = {
 };
 
 export default worker;
+
+async function handleWindowsDownload(request: Request, ctx: ExecutionContext) {
+  if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method Not Allowed", { status: 405 });
+
+  const url = new URL(request.url);
+  const repositoryUrl = "https://github.com/ClonikDarbe/EnclaveLibrary-Releases";
+  const cacheKey = new Request(`${url.origin}/__enclave_latest_windows_download`);
+  const edgeCache = (caches as CacheStorage & { default: Cache }).default;
+  const cached = await edgeCache.match(cacheKey);
+  if (cached) return cached;
+
+  const latestRelease = await fetch("https://api.github.com/repos/ClonikDarbe/EnclaveLibrary-Releases/releases/latest", {
+    headers: {
+      Accept: "application/vnd.github+json",
+      "User-Agent": "Enclave-Order-Web",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+  if (!latestRelease.ok) return Response.redirect(`${repositoryUrl}/releases/latest`, 302);
+
+  const release = await latestRelease.json().catch(() => null) as { assets?: Array<{ name?: unknown; browser_download_url?: unknown }> } | null;
+  const assets = Array.isArray(release?.assets) ? release.assets : [];
+  const executable = assets
+    .filter((asset) => typeof asset.name === "string" && typeof asset.browser_download_url === "string" && /\.exe$/i.test(asset.name))
+    .sort((left, right) => Number(/setup/i.test(String(right.name))) - Number(/setup/i.test(String(left.name))))[0];
+  if (!executable || typeof executable.browser_download_url !== "string") return Response.redirect(`${repositoryUrl}/releases/latest`, 302);
+
+  const downloadUrl = new URL(executable.browser_download_url);
+  const expectedPrefix = "/ClonikDarbe/EnclaveLibrary-Releases/releases/download/";
+  if (downloadUrl.protocol !== "https:" || downloadUrl.hostname !== "github.com" || !downloadUrl.pathname.startsWith(expectedPrefix)) {
+    return Response.redirect(`${repositoryUrl}/releases/latest`, 302);
+  }
+
+  const response = new Response(null, {
+    status: 302,
+    headers: {
+      Location: downloadUrl.toString(),
+      "Cache-Control": "public, max-age=600",
+      "Referrer-Policy": "no-referrer",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+  ctx.waitUntil(edgeCache.put(cacheKey, response.clone()));
+  return response;
+}
 
 async function handleSteamSummaryRequest(request: Request, env: Env, ctx: ExecutionContext) {
   if (request.method !== "GET") return new Response("Method Not Allowed", { status: 405 });

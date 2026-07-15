@@ -23,6 +23,7 @@ test("renders the Enclave Order landing page with security headers", async () =>
 
   const html = await response.text();
   assert.match(html, /Enclave Order/i);
+  assert.match(html, /\/download\/windows/);
   assert.match(html, /Oyun arşivin/i);
   assert.match(html, /Kütüphanemi görüntüle/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);

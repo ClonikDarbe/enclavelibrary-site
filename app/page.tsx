@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-const releaseUrl = "https://github.com/EnclaveStudios/EnclaveLibraryNext/releases/latest";
+const releaseUrl = "/download/windows";
+const releaseRepositoryUrl = "https://github.com/ClonikDarbe/EnclaveLibrary-Releases";
 
 function Mark() {
   return <span className="brand-mark" aria-hidden="true">E</span>;
@@ -28,7 +29,7 @@ export default function Home() {
           <h1>Oyun dünyan.<br /><em>Tek bir evren.</em></h1>
           <p className="hero-lead">Launcher kalabalığını sustur. Steam’den Epic’e, GOG’dan Xbox’a tüm koleksiyonunu tek bir hızlı ve güvenli oyuncu merkezinde topla.</p>
           <div className="hero-actions">
-            <a className="button primary" href={releaseUrl} rel="noreferrer">Şimdi indir <span>↗</span></a>
+            <a className="button primary" href={releaseUrl}>Şimdi indir <span>↓</span></a>
             <Link className="button ghost" href="/login">Kütüphanemi görüntüle</Link>
           </div>
           <div className="trust-row">
@@ -83,10 +84,10 @@ export default function Home() {
 
       <section className="cta-section">
         <p className="eyebrow"><span /> SİSTEM HAZIR</p><h2>Sıradaki oyun<br />seni bekliyor.</h2><p>Enclave Order’ı indir veya güvenli web panelinden koleksiyonuna göz at.</p>
-        <div className="hero-actions centered"><a className="button primary" href={releaseUrl}>Son sürümü indir <span>↗</span></a><Link className="button dark" href="/login">Web hesabına gir</Link></div>
+        <div className="hero-actions centered"><a className="button primary" href={releaseUrl}>Son sürümü indir <span>↓</span></a><Link className="button dark" href="/login">Web hesabına gir</Link></div>
       </section>
 
-      <footer><Link className="brand" href="/"><Mark /><span><b>ENCLAVE</b><small>ORDER</small></span></Link><p>© 2026 Enclave Studios. Oyunların, senin evrenin.</p><div><a href="#security">Güvenlik</a><a href={releaseUrl}>GitHub</a></div></footer>
+      <footer><Link className="brand" href="/"><Mark /><span><b>ENCLAVE</b><small>ORDER</small></span></Link><p>© 2026 Enclave Studios. Oyunların, senin evrenin.</p><div><a href="#security">Güvenlik</a><a href={releaseRepositoryUrl} rel="noreferrer">GitHub</a></div></footer>
     </main>
   );
 }
