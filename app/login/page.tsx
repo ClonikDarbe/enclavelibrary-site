@@ -5,26 +5,29 @@ import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Güvenli giriş" };
 
-export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; message?: string }> }) {
   const token = await accessToken();
   const config = supabaseConfig();
   if (token && config) {
     const session = await fetch(`${config.url}/auth/v1/user`, { headers: authHeaders(config.key, token), cache: "no-store" });
     if (session.ok) redirect("/library");
   }
-  const { error } = await searchParams;
+  const { error, message } = await searchParams;
   return <main className="auth-shell">
     <Link className="auth-brand" href="/"><span className="brand-mark">E</span><span><b>ENCLAVE</b><small>ORDER</small></span></Link>
     <section className="auth-card">
       <p className="eyebrow"><span /> SECURE ACCESS</p><h1>Hesabına<br /><em>geri dön.</em></h1>
       <p className="auth-intro">Uygulamada kullandığın Enclave hesabıyla giriş yap. Web paneli oyunlarını yalnızca görüntüler.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
+      {message && <p className="form-success" role="status">{message}</p>}
       <form action="/api/auth/login" method="post">
         <input type="hidden" name="returnTo" value="/library" />
         <label>Kullanıcı adı veya e-posta<input name="identifier" required autoComplete="username" maxLength={120} placeholder="oyuncu@eposta.com" /></label>
         <label>Parola<input name="password" required type="password" autoComplete="current-password" minLength={8} maxLength={128} placeholder="••••••••••••" /></label>
+        <Link className="auth-text-link" href="/forgot-password">Şifremi unuttum</Link>
         <button className="button primary" type="submit">Güvenli giriş <span>→</span></button>
       </form>
+      <p className="auth-switch">Enclave hesabın yok mu? <Link href="/signup">Ücretsiz üye ol</Link></p>
       <div className="auth-foot"><span>🔒 HttpOnly oturum</span><span>Salt okunur panel</span><span>RLS korumalı</span></div>
     </section>
     <aside className="auth-aside"><div className="auth-noise" /><p>ENCLAVE NETWORK</p><strong>Oyunların.<br />Düzenin.<br /><em>Her yerde.</em></strong><small>Kimlik doğrulama Supabase Auth üzerinden şifreli bağlantıyla yapılır. Parolan bu site tarafından kaydedilmez.</small></aside>

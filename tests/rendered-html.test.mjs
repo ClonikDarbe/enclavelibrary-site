@@ -47,6 +47,24 @@ test("keeps authentication server-side and the library read-only", async () => {
   assert.match(wrangler, /"name":\s*"enclave-order"/);
 });
 
+test("provides secure signup and password recovery flows", async () => {
+  const [loginPage, signupRoute, forgotRoute, resetRoute, resetForm] = await Promise.all([
+    readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/auth/signup/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/auth/forgot-password/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/auth/reset-password/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/reset-password/ResetPasswordForm.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(loginPage, /\/forgot-password/);
+  assert.match(loginPage, /\/signup/);
+  assert.match(signupRoute, /\/auth\/v1\/signup/);
+  assert.match(signupRoute, /httpOnly:\s*true/);
+  assert.match(forgotRoute, /\/auth\/v1\/recover/);
+  assert.match(forgotRoute, /https:\/\/enclavelibrary\.com\/reset-password/);
+  assert.match(resetRoute, /method:\s*"PUT"/);
+  assert.match(resetForm, /history\.replaceState/);
+});
+
 test("resolves a missing cover from an exact Steam title match", async () => {
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;
