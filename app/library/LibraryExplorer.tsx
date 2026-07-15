@@ -171,9 +171,10 @@ function GameArtwork({ game, modal = false }: { game: LibraryGame; modal?: boole
   const steamPortrait = steamId ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_600x900_2x.jpg` : "";
   const steamPortraitFallback = steamId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamId}/library_600x900.jpg` : "";
   const steamHeader = steamId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamId}/header.jpg` : "";
+  const titleFallback = `/api/game-art?title=${encodeURIComponent(game.title)}`;
   const candidates = [...new Set((modal
-    ? [game.bannerUrl, game.coverUrl, steamHeader, steamPortrait, steamPortraitFallback]
-    : [game.coverUrl, steamPortrait, steamPortraitFallback, steamHeader]
+    ? [game.bannerUrl, game.coverUrl, steamHeader, steamPortrait, steamPortraitFallback, titleFallback]
+    : [game.coverUrl, steamPortrait, steamPortraitFallback, steamHeader, titleFallback]
   ).filter((value): value is string => Boolean(value)))];
   const source = candidates[attempt];
   if (!source) return null;

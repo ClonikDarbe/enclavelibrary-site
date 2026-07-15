@@ -30,10 +30,11 @@ test("renders the Enclave Order landing page with security headers", async () =>
 });
 
 test("keeps authentication server-side and the library read-only", async () => {
-  const [loginRoute, authHelper, libraryPage, wrangler] = await Promise.all([
+  const [loginRoute, authHelper, libraryPage, libraryExplorer, wrangler] = await Promise.all([
     readFile(new URL("../app/api/auth/login/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/enclave-auth.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/library/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/library/LibraryExplorer.tsx", import.meta.url), "utf8"),
     readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
   ]);
   assert.match(loginRoute, /httpOnly:\s*true/);
@@ -41,6 +42,36 @@ test("keeps authentication server-side and the library read-only", async () => {
   assert.match(authHelper, /SUPABASE_PUBLISHABLE_KEY/);
   assert.match(libraryPage, /enclave_web_library/);
   assert.match(libraryPage, /salt okunur/i);
+  assert.match(libraryExplorer, /\/api\/game-art\?title=/);
   assert.doesNotMatch(libraryPage, /insert\(|update\(|delete\(/i);
   assert.match(wrangler, /"name":\s*"enclave-order"/);
+});
+
+test("resolves a missing cover from an exact Steam title match", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async (input, init) => {
+    const url = String(input instanceof Request ? input.url : input);
+    if (url.startsWith("https://store.steampowered.com/search/")) {
+      return new Response('<a data-ds-appid="1086940"><span class="title">Baldur\'s Gate 3</span></a>');
+    }
+    return originalFetch(input, init);
+  };
+
+  try {
+    const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+    workerUrl.searchParams.set("art-test", `${process.pid}-${Date.now()}`);
+    const { default: worker } = await import(workerUrl.href);
+    const response = await worker.fetch(
+      new Request("http://localhost/api/game-art?title=Baldur%27s%20Gate%203"),
+      { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
+      { waitUntil() {}, passThroughOnException() {} },
+    );
+    assert.equal(response.status, 302);
+    assert.match(response.headers.get("location") ?? "", /\/1086940\/library_600x900_2x\.jpg$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.caches = originalCaches;
+  }
 });

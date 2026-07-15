@@ -43,6 +43,10 @@ const worker = {
       return handleSteamSummaryRequest(request, env, ctx);
     }
 
+    if (url.pathname === "/api/game-art") {
+      return handleGameArtworkRequest(request, ctx);
+    }
+
     if (url.pathname === "/download/windows") {
       return handleWindowsDownload(request, ctx);
     }
@@ -78,6 +82,54 @@ const worker = {
 };
 
 export default worker;
+
+async function handleGameArtworkRequest(request: Request, ctx: ExecutionContext) {
+  if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method Not Allowed", { status: 405 });
+
+  const url = new URL(request.url);
+  const title = (url.searchParams.get("title") || "").replace(/\s+/g, " ").trim();
+  if (!title || title.length > 120) return new Response("Not Found", { status: 404 });
+
+  const normalizedTitle = normalizeGameTitle(title);
+  const cacheKey = new Request(`${url.origin}/__enclave_game_art/${encodeURIComponent(normalizedTitle)}`);
+  const edgeCache = (caches as CacheStorage & { default: Cache }).default;
+  const cached = await edgeCache.match(cacheKey);
+  if (cached) return cached;
+
+  const searchUrl = new URL("https://store.steampowered.com/search/");
+  searchUrl.searchParams.set("term", title);
+  searchUrl.searchParams.set("ignore_preferences", "1");
+  const searchResponse = await fetch(searchUrl, {
+    headers: {
+      "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.7",
+      "User-Agent": "Enclave-Order-Web/1.0",
+    },
+  });
+  if (!searchResponse.ok) return new Response("Not Found", { status: 404, headers: { "Cache-Control": "public, max-age=900" } });
+
+  const html = await searchResponse.text();
+  const matches = [...html.matchAll(/<a[^>]+data-ds-appid="([0-9,]+)"[^>]*>[\s\S]*?<span class="title">([\s\S]*?)<\/span>/gi)].slice(0, 12);
+  const exact = matches.find((match) => normalizeGameTitle(decodeHtml(match[2].replace(/<[^>]*>/g, " "))) === normalizedTitle);
+  const appId = exact?.[1]?.split(",")[0];
+  if (!appId || !/^\d{1,12}$/.test(appId)) {
+    const miss = new Response("Not Found", { status: 404, headers: { "Cache-Control": "public, max-age=21600" } });
+    ctx.waitUntil(edgeCache.put(cacheKey, miss.clone()));
+    return miss;
+  }
+
+  const artworkUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900_2x.jpg`;
+  const response = new Response(null, {
+    status: 302,
+    headers: {
+      Location: artworkUrl,
+      "Cache-Control": "public, max-age=604800",
+      "Referrer-Policy": "no-referrer",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+  ctx.waitUntil(edgeCache.put(cacheKey, response.clone()));
+  return response;
+}
 
 async function handleWindowsDownload(request: Request, ctx: ExecutionContext) {
   if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method Not Allowed", { status: 405 });
@@ -190,6 +242,16 @@ function decodeHtml(value: string) {
     }
     return entities[entity.toLowerCase()] ?? "";
   });
+}
+
+function normalizeGameTitle(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("en-US")
+    .replace(/[™®©]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function readCookie(header: string, name: string) {
