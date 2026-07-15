@@ -82,7 +82,7 @@ export default async function Library() {
     <SessionActivityGuard />
     <header className="library-header">
       <Link className="brand" href="/"><span className="brand-mark">E</span><span><b>ENCLAVE</b><small>ORDER</small></span></Link>
-      <div className="library-user"><span><b>{username}</b><small>{user.email}</small></span><form action="/api/auth/logout" method="post"><button type="submit">Çıkış</button></form></div>
+      <div className="library-user"><Link className="library-profile-link" href="/profile"><span><b>{username}</b><small>{user.email}</small></span></Link><form action="/api/auth/logout" method="post"><button type="submit">Çıkış</button></form></div>
     </header>
     <section className="library-hero">
       <div><p className="eyebrow"><span /> PLAYER ARCHIVE // ONLINE</p><h1>Kütüphanen.<br /><em>Her yerde.</em></h1><p>Salt okunur koleksiyonunda oyunlarını ara, platforma göre filtrele ve detaylarını güvenli web panelinden incele. Bilgisayardan kaldırılan oyunlar web arşivinde korunur.</p></div>

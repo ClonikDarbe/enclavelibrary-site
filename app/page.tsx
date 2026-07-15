@@ -14,10 +14,13 @@ function Mark() {
 export default async function Home() {
   const token = await accessToken();
   const config = supabaseConfig();
-  const response = token && config
-    ? await fetch(`${config.url}/auth/v1/user`, { headers: authHeaders(config.key, token), cache: "no-store" }).catch(() => null)
-    : null;
+  const [response, announcementResponse] = await Promise.all([
+    token && config ? fetch(`${config.url}/auth/v1/user`, { headers: authHeaders(config.key, token), cache: "no-store" }).catch(() => null) : null,
+    config ? fetch(`${config.url}/rest/v1/enclave_announcements?select=title,body&is_published=eq.true&order=created_at.desc&limit=1`, { headers: authHeaders(config.key), cache: "no-store" }).catch(() => null) : null,
+  ]);
   const user = response?.ok ? await response.json().catch(() => null) as { email?: string; user_metadata?: Record<string, unknown> } | null : null;
+  const announcementRows = announcementResponse?.ok ? await announcementResponse.json().catch(() => []) as { title: string; body: string }[] : [];
+  const announcement = announcementRows[0];
   const username = user ? profileName(user) : "";
   const avatarUrl = user ? safeAvatarUrl(user.user_metadata?.avatar_url || user.user_metadata?.picture) : "";
   return (
@@ -31,12 +34,13 @@ export default async function Home() {
         <nav aria-label="Ana menü">
           <a href="#features">Özellikler</a>
           <a href="#security">Güvenlik</a>
-          {user ? <Link className="nav-account" href="/library" aria-label={`${username} hesabının kütüphanesini aç`}>
+          {user ? <Link className="nav-account" href="/profile" aria-label={`${username} oyuncu profilini aç`}>
             <span className="nav-avatar">{avatarUrl ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer" /> : null}<b>{profileInitials(username)}</b></span>
-            <span><b>{username}</b><small>KÜTÜPHANEM</small></span>
+            <span><b>{username}</b><small>OYUNCU PROFİLİ</small></span>
           </Link> : <Link className="nav-login" href="/login">Hesabına gir</Link>}
         </nav>
       </header>
+      {announcement ? <aside className="site-announcement"><b>{announcement.title}</b><span>{announcement.body}</span></aside> : null}
 
       <section className="hero">
         <div className="hero-grid" aria-hidden="true" />

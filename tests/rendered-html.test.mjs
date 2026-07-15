@@ -94,6 +94,26 @@ test("expires authenticated web sessions after fifteen minutes of inactivity", a
   assert.match(logoutRoute, /ACTIVITY_COOKIE/);
 });
 
+test("provides privacy-safe player profiles and an owner-only admin console", async () => {
+  const [profilePage, profileRoute, publicProfile, adminPage, adminRoute, sql] = await Promise.all([
+    readFile(new URL("../app/profile/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/profile/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/u/[username]/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/admin/announcement/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/profile_admin.sql", import.meta.url), "utf8"),
+  ]);
+  assert.match(profilePage, /is_public/);
+  assert.match(profileRoute, /update_enclave_public_profile/);
+  assert.match(publicProfile, /get_public_enclave_profile/);
+  assert.doesNotMatch(publicProfile, /auth\.users|email/);
+  assert.match(adminPage, /admin_enclave_dashboard/);
+  assert.match(adminRoute, /admin_publish_enclave_announcement/);
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /enclave_admins/);
+  assert.match(sql, /revoke all on function/i);
+});
+
 test("resolves a missing cover from an exact Steam title match", async () => {
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;
