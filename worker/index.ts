@@ -117,7 +117,11 @@ async function handleGameArtworkRequest(request: Request, ctx: ExecutionContext)
     return miss;
   }
 
-  const artworkUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900_2x.jpg`;
+  const detailsResponse = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic`, {
+    headers: { "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.7" },
+  });
+  const details = detailsResponse.ok ? await detailsResponse.json().catch(() => null) : null;
+  const artworkUrl = steamArtwork(details, appId) || `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900_2x.jpg`;
   const response = new Response(null, {
     status: 302,
     headers: {
@@ -252,6 +256,19 @@ function normalizeGameTitle(value: string) {
     .replace(/[™®©]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function steamArtwork(payload: unknown, appId: string) {
+  const entry = payload && typeof payload === "object" ? (payload as Record<string, unknown>)[appId] : null;
+  const data = entry && typeof entry === "object" ? (entry as { data?: unknown }).data : null;
+  const header = data && typeof data === "object" ? (data as { header_image?: unknown }).header_image : null;
+  if (typeof header !== "string") return "";
+  try {
+    const url = new URL(header);
+    return url.protocol === "https:" && (url.hostname === "steamstatic.com" || url.hostname.endsWith(".steamstatic.com")) ? url.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 function readCookie(header: string, name: string) {

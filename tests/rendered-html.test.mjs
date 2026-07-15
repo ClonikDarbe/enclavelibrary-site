@@ -56,6 +56,9 @@ test("resolves a missing cover from an exact Steam title match", async () => {
     if (url.startsWith("https://store.steampowered.com/search/")) {
       return new Response('<a data-ds-appid="1086940"><span class="title">Baldur\'s Gate 3</span></a>');
     }
+    if (url.startsWith("https://store.steampowered.com/api/appdetails")) {
+      return Response.json({ "1086940": { success: true, data: { header_image: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/header.jpg" } } });
+    }
     return originalFetch(input, init);
   };
 
@@ -69,7 +72,7 @@ test("resolves a missing cover from an exact Steam title match", async () => {
       { waitUntil() {}, passThroughOnException() {} },
     );
     assert.equal(response.status, 302);
-    assert.match(response.headers.get("location") ?? "", /\/1086940\/library_600x900_2x\.jpg$/);
+    assert.equal(response.headers.get("location"), "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1086940/header.jpg");
   } finally {
     globalThis.fetch = originalFetch;
     globalThis.caches = originalCaches;

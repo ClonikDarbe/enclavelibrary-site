@@ -47,6 +47,14 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
     }
     return artwork;
   }, [games]);
+  const sharedSteamIds = useMemo(() => {
+    const ids = new Map<string, string>();
+    for (const game of games) {
+      const steamId = game.id.match(/^steam:(\d+)$/i)?.[1];
+      if (steamId && !ids.has(normalizeTitleKey(game.title))) ids.set(normalizeTitleKey(game.title), steamId);
+    }
+    return ids;
+  }, [games]);
 
   useEffect(() => {
     if (!selected || localizedSummaries[selected.id]) {
@@ -138,7 +146,7 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
     {setupPending ? <div className="empty-library setup-library"><span>◇</span><h3>Web arşivi kurulmayı bekliyor</h3><p>Yeni güvenli kütüphane tablosu kurulduktan ve masaüstü uygulaması ilk eşitlemeyi yaptıktan sonra oyunların burada görünecek.</p></div> : visibleGames.length ? <div className="game-grid">{visibleGames.map((game) => <button className={`game-card${game.devicePresent ? "" : " archived"}`} key={game.id} onClick={() => setSelected(game)}>
       <div className="game-art">
         <span className="game-art-fallback">{initials(game.title)}</span>
-        <GameArtwork game={game} sharedGame={sharedArtwork.get(normalizeTitleKey(game.title))} />
+        <GameArtwork game={game} sharedGame={sharedArtwork.get(normalizeTitleKey(game.title))} sharedSteamId={sharedSteamIds.get(normalizeTitleKey(game.title))} />
         <div className="game-art-shade" />
         {game.logoUrl ? <img className="game-logo" src={game.logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <strong>{game.title}</strong>}
         <small>{platformLabel(game.platform || "Enclave")}</small>{game.favorite && <b className="favorite-mark">★</b>}
@@ -151,7 +159,7 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
         <button className="game-modal-close" onClick={() => setSelected(null)} aria-label="Detayları kapat">×</button>
         <div className="game-modal-visual">
           <span>{initials(selected.title)}</span>
-          <GameArtwork key={selected.id} game={selected} sharedGame={sharedArtwork.get(normalizeTitleKey(selected.title))} modal />
+          <GameArtwork key={selected.id} game={selected} sharedGame={sharedArtwork.get(normalizeTitleKey(selected.title))} sharedSteamId={sharedSteamIds.get(normalizeTitleKey(selected.title))} modal />
           <div />
           {selected.logoUrl ? <img className="game-modal-logo" src={selected.logoUrl} alt={selected.title} referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <h3>{selected.title}</h3>}
         </div>
@@ -172,9 +180,9 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
 }
 
 function Detail({ label, value }: { label: string; value: string }) { return <div><span>{label}</span><b>{value}</b></div>; }
-function GameArtwork({ game, sharedGame, modal = false }: { game: LibraryGame; sharedGame?: LibraryGame; modal?: boolean }) {
+function GameArtwork({ game, sharedGame, sharedSteamId, modal = false }: { game: LibraryGame; sharedGame?: LibraryGame; sharedSteamId?: string; modal?: boolean }) {
   const [attempt, setAttempt] = useState(0);
-  const steamId = game.id.match(/^steam:(\d+)$/i)?.[1];
+  const steamId = game.id.match(/^steam:(\d+)$/i)?.[1] || sharedSteamId;
   const steamPortrait = steamId ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_600x900_2x.jpg` : "";
   const steamPortraitFallback = steamId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamId}/library_600x900.jpg` : "";
   const steamHeader = steamId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamId}/header.jpg` : "";
