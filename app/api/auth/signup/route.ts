@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ACCESS_COOKIE, REFRESH_COOKIE, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
+import { ACCESS_COOKIE, ACTIVITY_COOKIE, INACTIVITY_SECONDS, REFRESH_COOKIE, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME = /^[A-Za-z0-9_.-]{3,24}$/;
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     const secure = new URL(request.url).protocol === "https:";
     response.cookies.set(ACCESS_COOKIE, payload.access_token, { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: Math.max(60, payload.expires_in ?? 3600) });
     response.cookies.set(REFRESH_COOKIE, payload.refresh_token, { httpOnly: true, secure, sameSite: "strict", path: "/api/auth", maxAge: 60 * 60 * 24 * 30 });
+    response.cookies.set(ACTIVITY_COOKIE, "active", { httpOnly: true, secure, sameSite: "strict", path: "/", maxAge: INACTIVITY_SECONDS });
     response.headers.set("Cache-Control", "no-store");
     return response;
   }

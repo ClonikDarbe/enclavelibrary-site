@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
 import LibraryExplorer, { type LibraryGame } from "./LibraryExplorer";
+import SessionActivityGuard from "./SessionActivityGuard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Kütüphanem" };
@@ -78,6 +79,7 @@ export default async function Library() {
   const latestSync = games[0]?.lastSeenAt;
 
   return <main className="library-shell">
+    <SessionActivityGuard />
     <header className="library-header">
       <Link className="brand" href="/"><span className="brand-mark">E</span><span><b>ENCLAVE</b><small>ORDER</small></span></Link>
       <div className="library-user"><span><b>{username}</b><small>{user.email}</small></span><form action="/api/auth/logout" method="post"><button type="submit">Çıkış</button></form></div>

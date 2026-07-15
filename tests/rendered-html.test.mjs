@@ -65,6 +65,25 @@ test("provides secure signup and password recovery flows", async () => {
   assert.match(resetForm, /history\.replaceState/);
 });
 
+test("expires authenticated web sessions after fifteen minutes of inactivity", async () => {
+  const [authHelper, activityRoute, activityGuard, libraryPage, logoutRoute] = await Promise.all([
+    readFile(new URL("../lib/enclave-auth.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/auth/activity/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/library/SessionActivityGuard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/library/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/auth/logout/route.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(authHelper, /INACTIVITY_SECONDS\s*=\s*15\s*\*\s*60/);
+  assert.match(authHelper, /ACTIVITY_COOKIE/);
+  assert.match(activityRoute, /httpOnly:\s*true/);
+  assert.match(activityRoute, /maxAge:\s*INACTIVITY_SECONDS/);
+  assert.match(activityGuard, /15\s*\*\s*60\s*\*\s*1000/);
+  assert.match(activityGuard, /visibilitychange/);
+  assert.match(activityGuard, /\/api\/auth\/logout/);
+  assert.match(libraryPage, /SessionActivityGuard/);
+  assert.match(logoutRoute, /ACTIVITY_COOKIE/);
+});
+
 test("resolves a missing cover from an exact Steam title match", async () => {
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;

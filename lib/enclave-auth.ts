@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 
 export const ACCESS_COOKIE = "enclave_access";
 export const REFRESH_COOKIE = "enclave_refresh";
+export const ACTIVITY_COOKIE = "enclave_activity";
+export const INACTIVITY_SECONDS = 15 * 60;
 
 export function supabaseConfig() {
   const url = (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL)?.trim();
@@ -11,7 +13,9 @@ export function supabaseConfig() {
 }
 
 export async function accessToken() {
-  return (await cookies()).get(ACCESS_COOKIE)?.value ?? "";
+  const store = await cookies();
+  if (!store.get(ACTIVITY_COOKIE)?.value) return "";
+  return store.get(ACCESS_COOKIE)?.value ?? "";
 }
 
 export function authHeaders(key: string, token?: string) {

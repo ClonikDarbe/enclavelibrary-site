@@ -1,15 +1,18 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ACCESS_COOKIE, REFRESH_COOKIE, authHeaders, safeReturnTo, supabaseConfig } from "@/lib/enclave-auth";
+import { ACCESS_COOKIE, ACTIVITY_COOKIE, INACTIVITY_SECONDS, REFRESH_COOKIE, authHeaders, safeReturnTo, supabaseConfig } from "@/lib/enclave-auth";
 
 export async function GET(request: Request) {
   const config = supabaseConfig();
-  const refreshToken = (await cookies()).get(REFRESH_COOKIE)?.value;
+  const cookieStore = await cookies();
+  const refreshToken = cookieStore.get(REFRESH_COOKIE)?.value;
+  const active = cookieStore.get(ACTIVITY_COOKIE)?.value;
   const returnTo = safeReturnTo(new URL(request.url).searchParams.get("return_to"));
-  if (!config || !refreshToken) {
+  if (!config || !refreshToken || !active) {
     const missing = NextResponse.redirect(new URL("/login", request.url), 303);
     missing.cookies.set(ACCESS_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
     missing.cookies.set(REFRESH_COOKIE, "", { httpOnly: true, path: "/api/auth", maxAge: 0 });
+    missing.cookies.set(ACTIVITY_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
     return missing;
   }
 
@@ -20,11 +23,13 @@ export async function GET(request: Request) {
   if (!tokenResponse.ok || !session?.access_token || !session.refresh_token) {
     const failed = NextResponse.redirect(new URL("/login?error=Oturumun+süresi+doldu.", request.url), 303);
     failed.cookies.set(ACCESS_COOKIE, "", { path: "/", maxAge: 0 }); failed.cookies.set(REFRESH_COOKIE, "", { path: "/api/auth", maxAge: 0 });
+    failed.cookies.set(ACTIVITY_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
     return failed;
   }
   const response = NextResponse.redirect(new URL(returnTo, request.url), 303);
   const secure = new URL(request.url).protocol === "https:";
   response.cookies.set(ACCESS_COOKIE, session.access_token, { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: Math.max(60, session.expires_in ?? 3600) });
   response.cookies.set(REFRESH_COOKIE, session.refresh_token, { httpOnly: true, secure, sameSite: "strict", path: "/api/auth", maxAge: 60 * 60 * 24 * 30 });
+  response.cookies.set(ACTIVITY_COOKIE, "active", { httpOnly: true, secure, sameSite: "strict", path: "/", maxAge: INACTIVITY_SECONDS });
   return response;
 }
