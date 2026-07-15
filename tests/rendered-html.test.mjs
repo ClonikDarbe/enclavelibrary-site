@@ -48,12 +48,14 @@ test("keeps authentication server-side and the library read-only", async () => {
 });
 
 test("provides secure signup and password recovery flows", async () => {
-  const [loginPage, signupRoute, forgotRoute, resetRoute, resetForm] = await Promise.all([
+  const [loginPage, signupRoute, forgotRoute, resetRoute, resetForm, recoveryRedirect, layout] = await Promise.all([
     readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/auth/signup/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/auth/forgot-password/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/auth/reset-password/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/reset-password/ResetPasswordForm.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/RecoveryRedirect.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(loginPage, /\/forgot-password/);
   assert.match(loginPage, /\/signup/);
@@ -63,6 +65,9 @@ test("provides secure signup and password recovery flows", async () => {
   assert.match(forgotRoute, /https:\/\/enclavelibrary\.com\/reset-password/);
   assert.match(resetRoute, /method:\s*"PUT"/);
   assert.match(resetForm, /history\.replaceState/);
+  assert.match(recoveryRedirect, /type"\)\s*!==\s*"recovery"/);
+  assert.match(recoveryRedirect, /\/reset-password#/);
+  assert.match(layout, /RecoveryRedirect/);
 });
 
 test("expires authenticated web sessions after fifteen minutes of inactivity", async () => {

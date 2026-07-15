@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Space_Grotesk, Syne } from "next/font/google";
 import "./globals.css";
+import RecoveryRedirect from "./RecoveryRedirect";
 
 const body = Space_Grotesk({ variable: "--font-body", subsets: ["latin"], display: "swap" });
 const display = Syne({ variable: "--font-display", subsets: ["latin"], display: "swap" });
@@ -22,5 +23,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="tr"><body className={`${body.variable} ${display.variable}`}>{children}</body></html>;
+  return <html lang="tr"><body className={`${body.variable} ${display.variable}`}><RecoveryRedirect />{children}</body></html>;
 }
