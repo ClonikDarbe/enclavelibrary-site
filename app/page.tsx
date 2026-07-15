@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
+import SessionActivityGuard from "./library/SessionActivityGuard";
+
+export const dynamic = "force-dynamic";
 
 const releaseUrl = "/download/windows";
 const releaseRepositoryUrl = "https://github.com/ClonikDarbe/EnclaveLibrary-Releases";
@@ -7,9 +11,18 @@ function Mark() {
   return <span className="brand-mark" aria-hidden="true">E</span>;
 }
 
-export default function Home() {
+export default async function Home() {
+  const token = await accessToken();
+  const config = supabaseConfig();
+  const response = token && config
+    ? await fetch(`${config.url}/auth/v1/user`, { headers: authHeaders(config.key, token), cache: "no-store" }).catch(() => null)
+    : null;
+  const user = response?.ok ? await response.json().catch(() => null) as { email?: string; user_metadata?: Record<string, unknown> } | null : null;
+  const username = user ? profileName(user) : "";
+  const avatarUrl = user ? safeAvatarUrl(user.user_metadata?.avatar_url || user.user_metadata?.picture) : "";
   return (
     <main>
+      {user ? <SessionActivityGuard /> : null}
       <header className="site-header">
         <Link className="brand" href="/" aria-label="Enclave Order ana sayfa">
           <Mark />
@@ -18,7 +31,10 @@ export default function Home() {
         <nav aria-label="Ana menü">
           <a href="#features">Özellikler</a>
           <a href="#security">Güvenlik</a>
-          <Link className="nav-login" href="/login">Hesabına gir</Link>
+          {user ? <Link className="nav-account" href="/library" aria-label={`${username} hesabının kütüphanesini aç`}>
+            <span className="nav-avatar">{avatarUrl ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer" /> : null}<b>{profileInitials(username)}</b></span>
+            <span><b>{username}</b><small>KÜTÜPHANEM</small></span>
+          </Link> : <Link className="nav-login" href="/login">Hesabına gir</Link>}
         </nav>
       </header>
 
@@ -84,10 +100,25 @@ export default function Home() {
 
       <section className="cta-section">
         <p className="eyebrow"><span /> SİSTEM HAZIR</p><h2>Sıradaki oyun<br />seni bekliyor.</h2><p>Enclave Order’ı indir veya güvenli web panelinden koleksiyonuna göz at.</p>
-        <div className="hero-actions centered"><a className="button primary" href={releaseUrl}>Son sürümü indir <span>↓</span></a><Link className="button dark" href="/login">Web hesabına gir</Link></div>
+        <div className="hero-actions centered"><a className="button primary" href={releaseUrl}>Son sürümü indir <span>↓</span></a><Link className="button dark" href={user ? "/library" : "/login"}>{user ? "Kütüphaneme git" : "Web hesabına gir"}</Link></div>
       </section>
 
       <footer><Link className="brand" href="/"><Mark /><span><b>ENCLAVE</b><small>ORDER</small></span></Link><p>© 2026 Enclave Studios. Oyunların, senin evrenin.</p><div><a href="#security">Güvenlik</a><a href={releaseRepositoryUrl} rel="noreferrer">GitHub</a></div></footer>
     </main>
   );
+}
+
+function profileName(user: { email?: string; user_metadata?: Record<string, unknown> }) {
+  const metadata = user.user_metadata || {};
+  const candidate = metadata.username || metadata.user_name || metadata.full_name || metadata.name;
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim().slice(0, 40) : user.email?.split("@")[0]?.slice(0, 40) || "Oyuncu";
+}
+
+function profileInitials(value: string) {
+  return value.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase("tr") || "O";
+}
+
+function safeAvatarUrl(value: unknown) {
+  if (typeof value !== "string") return "";
+  try { const url = new URL(value); return url.protocol === "https:" ? url.toString() : ""; } catch { return ""; }
 }

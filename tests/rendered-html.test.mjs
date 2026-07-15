@@ -30,11 +30,12 @@ test("renders the Enclave Order landing page with security headers", async () =>
 });
 
 test("keeps authentication server-side and the library read-only", async () => {
-  const [loginRoute, authHelper, libraryPage, libraryExplorer, wrangler] = await Promise.all([
+  const [loginRoute, authHelper, libraryPage, libraryExplorer, homePage, wrangler] = await Promise.all([
     readFile(new URL("../app/api/auth/login/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/enclave-auth.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/library/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/library/LibraryExplorer.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
   ]);
   assert.match(loginRoute, /httpOnly:\s*true/);
@@ -43,6 +44,10 @@ test("keeps authentication server-side and the library read-only", async () => {
   assert.match(libraryPage, /enclave_web_library/);
   assert.match(libraryPage, /salt okunur/i);
   assert.match(libraryExplorer, /\/api\/game-art\?title=/);
+  assert.match(homePage, /\/auth\/v1\/user/);
+  assert.match(homePage, /className="nav-account"/);
+  assert.match(homePage, /profileInitials/);
+  assert.match(homePage, /safeAvatarUrl/);
   assert.doesNotMatch(libraryPage, /insert\(|update\(|delete\(/i);
   assert.match(wrangler, /"name":\s*"enclave-order"/);
 });
