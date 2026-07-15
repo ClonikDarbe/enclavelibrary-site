@@ -91,7 +91,7 @@ async function handleGameArtworkRequest(request: Request, ctx: ExecutionContext)
   if (!title || title.length > 120) return new Response("Not Found", { status: 404 });
 
   const normalizedTitle = normalizeGameTitle(title);
-  const cacheKey = new Request(`${url.origin}/__enclave_game_art/${encodeURIComponent(normalizedTitle)}`);
+  const cacheKey = new Request(`${url.origin}/__enclave_game_art_v2/${encodeURIComponent(normalizedTitle)}`);
   const edgeCache = (caches as CacheStorage & { default: Cache }).default;
   const cached = await edgeCache.match(cacheKey);
   if (cached) return cached;
