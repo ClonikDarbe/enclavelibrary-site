@@ -82,7 +82,7 @@ test("resolves a missing cover from an exact Steam title match", async () => {
   }
 });
 
-test("prefers a safe exact SteamGridDB portrait when configured", async () => {
+test("accepts one high-confidence SteamGridDB edition-title match when configured", async () => {
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;
   globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
@@ -90,7 +90,10 @@ test("prefers a safe exact SteamGridDB portrait when configured", async () => {
     const url = String(input instanceof Request ? input.url : input);
     if (url.startsWith("https://www.steamgriddb.com/api/v2/search/autocomplete/")) {
       assert.equal(init?.headers?.Authorization, "Bearer test-key");
-      return Response.json({ success: true, data: [{ id: 1234, name: "Alan Wake Remastered" }] });
+      return Response.json({ success: true, data: [
+        { id: 4321, name: "Game of Thrones" },
+        { id: 1234, name: "A Game of Thrones: The Board Game" },
+      ] });
     }
     if (url.startsWith("https://www.steamgriddb.com/api/v2/grids/game/1234")) {
       return Response.json({ success: true, data: [{ url: "https://cdn2.steamgriddb.com/grid/test.png", score: 99 }] });
@@ -103,7 +106,7 @@ test("prefers a safe exact SteamGridDB portrait when configured", async () => {
     workerUrl.searchParams.set("steamgriddb-test", `${process.pid}-${Date.now()}`);
     const { default: worker } = await import(workerUrl.href);
     const response = await worker.fetch(
-      new Request("http://localhost/api/game-art?title=Alan%20Wake%20Remastered"),
+      new Request("http://localhost/api/game-art?title=A%20Game%20of%20Thrones%3A%20The%20Board%20Game%20-%20Digital%20Edition"),
       {
         ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) },
         STEAMGRIDDB_API_KEY: "test-key",

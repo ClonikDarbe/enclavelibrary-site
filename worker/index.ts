@@ -92,7 +92,8 @@ async function handleGameArtworkRequest(request: Request, env: Env, ctx: Executi
   if (!title || title.length > 120) return new Response("Not Found", { status: 404 });
 
   const normalizedTitle = normalizeGameTitle(title);
-  const cacheKey = new Request(`${url.origin}/__enclave_game_art_v4/${encodeURIComponent(normalizedTitle)}`);
+  const artworkSource = env.STEAMGRIDDB_API_KEY ? "steamgriddb" : "steam";
+  const cacheKey = new Request(`${url.origin}/__enclave_game_art_v6/${artworkSource}/${encodeURIComponent(normalizedTitle)}`);
   const edgeCache = (caches as CacheStorage & { default: Cache }).default;
   const cached = await edgeCache.match(cacheKey);
   if (cached) return cached;
@@ -157,8 +158,8 @@ async function resolveSteamGridArtwork(title: string, normalizedTitle: string, a
     const games = searchPayload && typeof searchPayload === "object" && Array.isArray((searchPayload as { data?: unknown }).data)
       ? (searchPayload as { data: Array<{ id?: unknown; name?: unknown }> }).data
       : [];
-    const exactGame = games.find((game) => typeof game.name === "string" && normalizeGameTitle(game.name) === normalizedTitle);
-    const gameId = typeof exactGame?.id === "number" || typeof exactGame?.id === "string" ? String(exactGame.id) : "";
+    const matchedGame = selectSteamGridGame(games, normalizedTitle);
+    const gameId = typeof matchedGame?.id === "number" || typeof matchedGame?.id === "string" ? String(matchedGame.id) : "";
     if (!/^\d{1,12}$/.test(gameId)) return "";
 
     const gridsUrl = new URL(`https://www.steamgriddb.com/api/v2/grids/game/${gameId}`);
@@ -187,6 +188,30 @@ async function resolveSteamGridArtwork(title: string, normalizedTitle: string, a
     // SteamGridDB is an enhancement; the official Steam resolver below remains available.
   }
   return "";
+}
+
+function selectSteamGridGame(games: Array<{ id?: unknown; name?: unknown }>, normalizedTitle: string) {
+  const exact = games.find((game) => typeof game.name === "string" && normalizeGameTitle(game.name) === normalizedTitle);
+  if (exact) return exact;
+
+  const requestedTokens = new Set(normalizedTitle.split(" ").filter(Boolean));
+  const ranked = games
+    .filter((game): game is { id?: unknown; name: string } => typeof game.name === "string")
+    .map((game) => {
+      const candidate = normalizeGameTitle(game.name);
+      const candidateTokens = new Set(candidate.split(" ").filter(Boolean));
+      const intersection = [...requestedTokens].filter((token) => candidateTokens.has(token)).length;
+      const union = new Set([...requestedTokens, ...candidateTokens]).size;
+      const tokenScore = union ? intersection / union : 0;
+      const containmentScore = normalizedTitle.includes(candidate) || candidate.includes(normalizedTitle)
+        ? Math.min(normalizedTitle.length, candidate.length) / Math.max(normalizedTitle.length, candidate.length)
+        : 0;
+      return { game, score: Math.max(tokenScore, containmentScore) };
+    })
+    .sort((left, right) => right.score - left.score);
+  const best = ranked[0];
+  const runnerUp = ranked[1];
+  return best && best.score >= 0.72 && (!runnerUp || best.score - runnerUp.score >= 0.12) ? best.game : undefined;
 }
 
 function artworkRedirect(location: string) {
