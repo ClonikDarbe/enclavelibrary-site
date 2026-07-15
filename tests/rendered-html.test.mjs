@@ -81,3 +81,39 @@ test("resolves a missing cover from an exact Steam title match", async () => {
     globalThis.caches = originalCaches;
   }
 });
+
+test("prefers a safe exact SteamGridDB portrait when configured", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async (input, init) => {
+    const url = String(input instanceof Request ? input.url : input);
+    if (url.startsWith("https://www.steamgriddb.com/api/v2/search/autocomplete/")) {
+      assert.equal(init?.headers?.Authorization, "Bearer test-key");
+      return Response.json({ success: true, data: [{ id: 1234, name: "Alan Wake Remastered" }] });
+    }
+    if (url.startsWith("https://www.steamgriddb.com/api/v2/grids/game/1234")) {
+      return Response.json({ success: true, data: [{ url: "https://cdn2.steamgriddb.com/grid/test.png", score: 99 }] });
+    }
+    return originalFetch(input, init);
+  };
+
+  try {
+    const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+    workerUrl.searchParams.set("steamgriddb-test", `${process.pid}-${Date.now()}`);
+    const { default: worker } = await import(workerUrl.href);
+    const response = await worker.fetch(
+      new Request("http://localhost/api/game-art?title=Alan%20Wake%20Remastered"),
+      {
+        ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) },
+        STEAMGRIDDB_API_KEY: "test-key",
+      },
+      { waitUntil() {}, passThroughOnException() {} },
+    );
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get("location"), "https://cdn2.steamgriddb.com/grid/test.png");
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.caches = originalCaches;
+  }
+});

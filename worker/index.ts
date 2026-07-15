@@ -8,6 +8,7 @@ interface Env {
   SUPABASE_URL?: string;
   SUPABASE_PUBLISHABLE_KEY?: string;
   SUPABASE_ANON_KEY?: string;
+  STEAMGRIDDB_API_KEY?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -44,7 +45,7 @@ const worker = {
     }
 
     if (url.pathname === "/api/game-art") {
-      return handleGameArtworkRequest(request, ctx);
+      return handleGameArtworkRequest(request, env, ctx);
     }
 
     if (url.pathname === "/download/windows") {
@@ -83,7 +84,7 @@ const worker = {
 
 export default worker;
 
-async function handleGameArtworkRequest(request: Request, ctx: ExecutionContext) {
+async function handleGameArtworkRequest(request: Request, env: Env, ctx: ExecutionContext) {
   if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method Not Allowed", { status: 405 });
 
   const url = new URL(request.url);
@@ -91,10 +92,19 @@ async function handleGameArtworkRequest(request: Request, ctx: ExecutionContext)
   if (!title || title.length > 120) return new Response("Not Found", { status: 404 });
 
   const normalizedTitle = normalizeGameTitle(title);
-  const cacheKey = new Request(`${url.origin}/__enclave_game_art_v3/${encodeURIComponent(normalizedTitle)}`);
+  const cacheKey = new Request(`${url.origin}/__enclave_game_art_v4/${encodeURIComponent(normalizedTitle)}`);
   const edgeCache = (caches as CacheStorage & { default: Cache }).default;
   const cached = await edgeCache.match(cacheKey);
   if (cached) return cached;
+
+  const steamGridArtwork = env.STEAMGRIDDB_API_KEY
+    ? await resolveSteamGridArtwork(title, normalizedTitle, env.STEAMGRIDDB_API_KEY)
+    : "";
+  if (steamGridArtwork) {
+    const response = artworkRedirect(steamGridArtwork);
+    ctx.waitUntil(edgeCache.put(cacheKey, response.clone()));
+    return response;
+  }
 
   const communityResponse = await fetch(`https://steamcommunity.com/actions/SearchApps/${encodeURIComponent(title)}`, {
     headers: { "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.7", "User-Agent": "Enclave-Order-Web/1.0" },
@@ -129,17 +139,66 @@ async function handleGameArtworkRequest(request: Request, ctx: ExecutionContext)
   });
   const details = detailsResponse.ok ? await detailsResponse.json().catch(() => null) : null;
   const artworkUrl = steamArtwork(details, appId) || `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900_2x.jpg`;
-  const response = new Response(null, {
+  const response = artworkRedirect(artworkUrl);
+  ctx.waitUntil(edgeCache.put(cacheKey, response.clone()));
+  return response;
+}
+
+async function resolveSteamGridArtwork(title: string, normalizedTitle: string, apiKey: string) {
+  const headers = {
+    Accept: "application/json",
+    Authorization: `Bearer ${apiKey}`,
+    "User-Agent": "Enclave-Order-Web/1.0",
+  };
+
+  try {
+    const searchResponse = await fetch(`https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(title)}`, { headers });
+    const searchPayload = searchResponse.ok ? await searchResponse.json().catch(() => null) : null;
+    const games = searchPayload && typeof searchPayload === "object" && Array.isArray((searchPayload as { data?: unknown }).data)
+      ? (searchPayload as { data: Array<{ id?: unknown; name?: unknown }> }).data
+      : [];
+    const exactGame = games.find((game) => typeof game.name === "string" && normalizeGameTitle(game.name) === normalizedTitle);
+    const gameId = typeof exactGame?.id === "number" || typeof exactGame?.id === "string" ? String(exactGame.id) : "";
+    if (!/^\d{1,12}$/.test(gameId)) return "";
+
+    const gridsUrl = new URL(`https://www.steamgriddb.com/api/v2/grids/game/${gameId}`);
+    gridsUrl.searchParams.set("dimensions", "600x900,342x482,660x930");
+    gridsUrl.searchParams.set("types", "static");
+    gridsUrl.searchParams.set("nsfw", "false");
+    gridsUrl.searchParams.set("humor", "false");
+    gridsUrl.searchParams.set("epilepsy", "false");
+    gridsUrl.searchParams.set("limit", "20");
+    const gridsResponse = await fetch(gridsUrl, { headers });
+    const gridsPayload = gridsResponse.ok ? await gridsResponse.json().catch(() => null) : null;
+    const grids = gridsPayload && typeof gridsPayload === "object" && Array.isArray((gridsPayload as { data?: unknown }).data)
+      ? (gridsPayload as { data: Array<{ url?: unknown; score?: unknown }> }).data
+      : [];
+    const candidates = grids
+      .filter((grid) => typeof grid.url === "string")
+      .sort((left, right) => Number(right.score || 0) - Number(left.score || 0));
+    for (const grid of candidates) {
+      if (typeof grid.url !== "string") continue;
+      const artworkUrl = new URL(grid.url);
+      if (artworkUrl.protocol === "https:" && (artworkUrl.hostname === "steamgriddb.com" || artworkUrl.hostname.endsWith(".steamgriddb.com"))) {
+        return artworkUrl.toString();
+      }
+    }
+  } catch {
+    // SteamGridDB is an enhancement; the official Steam resolver below remains available.
+  }
+  return "";
+}
+
+function artworkRedirect(location: string) {
+  return new Response(null, {
     status: 302,
     headers: {
-      Location: artworkUrl,
+      Location: location,
       "Cache-Control": "public, max-age=604800",
       "Referrer-Policy": "no-referrer",
       "X-Content-Type-Options": "nosniff",
     },
   });
-  ctx.waitUntil(edgeCache.put(cacheKey, response.clone()));
-  return response;
 }
 
 async function handleWindowsDownload(request: Request, ctx: ExecutionContext) {
