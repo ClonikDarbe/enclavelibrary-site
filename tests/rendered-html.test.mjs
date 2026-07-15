@@ -53,6 +53,9 @@ test("resolves a missing cover from an exact Steam title match", async () => {
   globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
   globalThis.fetch = async (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
+    if (url.startsWith("https://steamcommunity.com/actions/SearchApps/")) {
+      return Response.json([{ appid: "1086940", name: "Baldur's Gate 3" }]);
+    }
     if (url.startsWith("https://store.steampowered.com/search/")) {
       return new Response('<a data-ds-appid="1086940"><span class="title">Baldur\'s Gate 3</span></a>');
     }

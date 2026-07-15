@@ -91,26 +91,33 @@ async function handleGameArtworkRequest(request: Request, ctx: ExecutionContext)
   if (!title || title.length > 120) return new Response("Not Found", { status: 404 });
 
   const normalizedTitle = normalizeGameTitle(title);
-  const cacheKey = new Request(`${url.origin}/__enclave_game_art_v2/${encodeURIComponent(normalizedTitle)}`);
+  const cacheKey = new Request(`${url.origin}/__enclave_game_art_v3/${encodeURIComponent(normalizedTitle)}`);
   const edgeCache = (caches as CacheStorage & { default: Cache }).default;
   const cached = await edgeCache.match(cacheKey);
   if (cached) return cached;
 
-  const searchUrl = new URL("https://store.steampowered.com/search/");
-  searchUrl.searchParams.set("term", title);
-  searchUrl.searchParams.set("ignore_preferences", "1");
-  const searchResponse = await fetch(searchUrl, {
-    headers: {
-      "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.7",
-      "User-Agent": "Enclave-Order-Web/1.0",
-    },
+  const communityResponse = await fetch(`https://steamcommunity.com/actions/SearchApps/${encodeURIComponent(title)}`, {
+    headers: { "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.7", "User-Agent": "Enclave-Order-Web/1.0" },
   });
-  if (!searchResponse.ok) return new Response("Not Found", { status: 404, headers: { "Cache-Control": "public, max-age=900" } });
+  const communityResults = communityResponse.ok ? await communityResponse.json().catch(() => []) : [];
+  const communityMatch = Array.isArray(communityResults) ? communityResults.find((entry: unknown) => {
+    const name = entry && typeof entry === "object" ? (entry as { name?: unknown }).name : null;
+    return typeof name === "string" && normalizeGameTitle(name) === normalizedTitle;
+  }) as { appid?: unknown } | undefined : undefined;
+  let appId = typeof communityMatch?.appid === "string" || typeof communityMatch?.appid === "number" ? String(communityMatch.appid) : "";
 
-  const html = await searchResponse.text();
-  const matches = [...html.matchAll(/<a[^>]+data-ds-appid="([0-9,]+)"[^>]*>[\s\S]*?<span class="title">([\s\S]*?)<\/span>/gi)].slice(0, 12);
-  const exact = matches.find((match) => normalizeGameTitle(decodeHtml(match[2].replace(/<[^>]*>/g, " "))) === normalizedTitle);
-  const appId = exact?.[1]?.split(",")[0];
+  if (!appId) {
+    const searchUrl = new URL("https://store.steampowered.com/search/");
+    searchUrl.searchParams.set("term", title);
+    searchUrl.searchParams.set("ignore_preferences", "1");
+    const searchResponse = await fetch(searchUrl, {
+      headers: { "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.7", "User-Agent": "Enclave-Order-Web/1.0" },
+    });
+    const html = searchResponse.ok ? await searchResponse.text() : "";
+    const matches = [...html.matchAll(/<a[^>]+data-ds-appid="([0-9,]+)"[^>]*>[\s\S]*?<span class="title">([\s\S]*?)<\/span>/gi)].slice(0, 12);
+    const exact = matches.find((match) => normalizeGameTitle(decodeHtml(match[2].replace(/<[^>]*>/g, " "))) === normalizedTitle);
+    appId = exact?.[1]?.split(",")[0] || "";
+  }
   if (!appId || !/^\d{1,12}$/.test(appId)) {
     const miss = new Response("Not Found", { status: 404, headers: { "Cache-Control": "public, max-age=21600" } });
     ctx.waitUntil(edgeCache.put(cacheKey, miss.clone()));
