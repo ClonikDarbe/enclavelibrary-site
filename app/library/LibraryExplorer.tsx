@@ -40,6 +40,13 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
   const [summaryLoading, setSummaryLoading] = useState(false);
   const deviceCount = games.filter((game) => game.devicePresent).length;
   const archiveCount = games.length - deviceCount;
+  const sharedArtwork = useMemo(() => {
+    const artwork = new Map<string, LibraryGame>();
+    for (const game of games) {
+      if ((game.coverUrl || game.bannerUrl) && !artwork.has(normalizeTitleKey(game.title))) artwork.set(normalizeTitleKey(game.title), game);
+    }
+    return artwork;
+  }, [games]);
 
   useEffect(() => {
     if (!selected || localizedSummaries[selected.id]) {
@@ -131,7 +138,7 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
     {setupPending ? <div className="empty-library setup-library"><span>◇</span><h3>Web arşivi kurulmayı bekliyor</h3><p>Yeni güvenli kütüphane tablosu kurulduktan ve masaüstü uygulaması ilk eşitlemeyi yaptıktan sonra oyunların burada görünecek.</p></div> : visibleGames.length ? <div className="game-grid">{visibleGames.map((game) => <button className={`game-card${game.devicePresent ? "" : " archived"}`} key={game.id} onClick={() => setSelected(game)}>
       <div className="game-art">
         <span className="game-art-fallback">{initials(game.title)}</span>
-        <GameArtwork game={game} />
+        <GameArtwork game={game} sharedGame={sharedArtwork.get(normalizeTitleKey(game.title))} />
         <div className="game-art-shade" />
         {game.logoUrl ? <img className="game-logo" src={game.logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <strong>{game.title}</strong>}
         <small>{platformLabel(game.platform || "Enclave")}</small>{game.favorite && <b className="favorite-mark">★</b>}
@@ -144,7 +151,7 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
         <button className="game-modal-close" onClick={() => setSelected(null)} aria-label="Detayları kapat">×</button>
         <div className="game-modal-visual">
           <span>{initials(selected.title)}</span>
-          <GameArtwork key={selected.id} game={selected} modal />
+          <GameArtwork key={selected.id} game={selected} sharedGame={sharedArtwork.get(normalizeTitleKey(selected.title))} modal />
           <div />
           {selected.logoUrl ? <img className="game-modal-logo" src={selected.logoUrl} alt={selected.title} referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <h3>{selected.title}</h3>}
         </div>
@@ -165,7 +172,7 @@ export default function LibraryExplorer({ games, latestSync, setupPending = fals
 }
 
 function Detail({ label, value }: { label: string; value: string }) { return <div><span>{label}</span><b>{value}</b></div>; }
-function GameArtwork({ game, modal = false }: { game: LibraryGame; modal?: boolean }) {
+function GameArtwork({ game, sharedGame, modal = false }: { game: LibraryGame; sharedGame?: LibraryGame; modal?: boolean }) {
   const [attempt, setAttempt] = useState(0);
   const steamId = game.id.match(/^steam:(\d+)$/i)?.[1];
   const steamPortrait = steamId ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_600x900_2x.jpg` : "";
@@ -173,14 +180,15 @@ function GameArtwork({ game, modal = false }: { game: LibraryGame; modal?: boole
   const steamHeader = steamId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamId}/header.jpg` : "";
   const titleFallback = `/api/game-art?title=${encodeURIComponent(game.title)}`;
   const candidates = [...new Set((modal
-    ? [game.bannerUrl, game.coverUrl, steamHeader, steamPortrait, steamPortraitFallback, titleFallback]
-    : [game.coverUrl, steamPortrait, steamPortraitFallback, steamHeader, titleFallback]
+    ? [game.bannerUrl, game.coverUrl, sharedGame?.bannerUrl, sharedGame?.coverUrl, steamHeader, steamPortrait, steamPortraitFallback, titleFallback]
+    : [game.coverUrl, sharedGame?.coverUrl, sharedGame?.bannerUrl, steamPortrait, steamPortraitFallback, steamHeader, titleFallback]
   ).filter((value): value is string => Boolean(value)))];
   const source = candidates[attempt];
   if (!source) return null;
   return <img src={source} alt={modal ? "" : `${game.title} kapak görseli`} loading={modal ? "eager" : "lazy"} referrerPolicy="no-referrer" onError={() => setAttempt((current) => current + 1)} />;
 }
 function initials(title: string) { return title.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(); }
+function normalizeTitleKey(title: string) { return title.toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]+/gi, " ").trim(); }
 function formatMinutes(value?: number) { const minutes = Number(value) || 0; return minutes >= 60 ? `${Math.round(minutes / 6) / 10} saat` : `${minutes} dk`; }
 function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Buluttan" : new Intl.DateTimeFormat("tr", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date); }
 function isLikelyTurkish(value: string) {
