@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { turnstileSiteKey } from "@/lib/turnstile";
+import Turnstile from "../Turnstile";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Şifremi unuttum" };
@@ -15,6 +17,7 @@ export default async function ForgotPassword({ searchParams }: { searchParams: P
       <form action="/api/auth/forgot-password" method="post">
         <label>E-posta<input name="email" required type="email" autoComplete="email" maxLength={120} placeholder="oyuncu@eposta.com" /></label>
         <label className="auth-honeypot" aria-hidden="true">Web sitesi<input name="website" tabIndex={-1} autoComplete="off" /></label>
+        <Turnstile siteKey={turnstileSiteKey()} />
         <button className="button primary" type="submit">Sıfırlama bağlantısı gönder <span>→</span></button>
       </form>
       <p className="auth-switch"><Link href="/login">← Giriş ekranına dön</Link></p>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
+import { accessToken, authHeaders, needsMfaChallenge, supabaseConfig } from "@/lib/enclave-auth";
 import SessionActivityGuard from "../library/SessionActivityGuard";
 import CopyProfileUrl from "./CopyProfileUrl";
 import ProfileMediaPicker from "./ProfileMediaPicker";
@@ -18,7 +18,8 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
   const userResponse = await fetch(`${config.url}/auth/v1/user`, { headers: authHeaders(config.key, token), cache: "no-store" });
   if (userResponse.status === 401) redirect("/api/auth/refresh?return_to=/profile");
   if (!userResponse.ok) redirect("/login");
-  const user = await userResponse.json() as { id: string; email?: string; user_metadata?: Record<string, unknown> };
+  const user = await userResponse.json() as { id: string; email?: string; user_metadata?: Record<string, unknown>; factors?: { status?: string; factor_type?: string }[] };
+  if (needsMfaChallenge(user, token)) redirect("/security/mfa?return_to=/profile");
   const [profileResponse, gamesResponse] = await Promise.all([
     fetch(`${config.url}/rest/v1/enclave_profiles?select=username,avatar_url,banner_url,bio,is_public&id=eq.${encodeURIComponent(user.id)}&limit=1`, { headers: authHeaders(config.key, token), cache: "no-store" }),
     fetch(`${config.url}/rest/v1/enclave_web_library?select=title,platform,cover_url,playtime_minutes,last_played,favorite&hidden_from_web=eq.false&order=playtime_minutes.desc`, { headers: authHeaders(config.key, token), cache: "no-store" }),
@@ -39,7 +40,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
 
   return <main className="profile-shell">
     <SessionActivityGuard />
-    <header className="profile-header"><Link className="brand" href="/"><span className="brand-mark">E</span><span><b>ENCLAVE</b><small>ORDER</small></span></Link><nav><Link href="/library">Kütüphane</Link><form action="/api/auth/logout" method="post"><button>Çıkış</button></form></nav></header>
+    <header className="profile-header"><Link className="brand" href="/"><span className="brand-mark">E</span><span><b>ENCLAVE</b><small>ORDER</small></span></Link><nav><Link href="/library">Kütüphane</Link><Link href="/security">Hesap ve güvenlik</Link><form action="/api/auth/logout" method="post"><button>Çıkış</button></form></nav></header>
     <section className="profile-hero" style={banner ? { backgroundImage: `linear-gradient(180deg,rgba(5,6,12,.12),#070810),url(${banner})` } : undefined}>
       <div className="profile-avatar">{avatar ? <img src={avatar} alt={`${username} profil resmi`} referrerPolicy="no-referrer" /> : initials(username)}</div>
       <div><p className="eyebrow"><span /> PLAYER PROFILE</p><h1>{username}</h1><p>{profile?.bio || "Kütüphanesini tek merkezde yöneten Enclave oyuncusu."}</p>{profile?.is_public ? <Link className="profile-share" href={`/u/${encodeURIComponent(username)}`}>Herkese açık profili görüntüle ↗</Link> : <span className="profile-private">GİZLİ PROFİL</span>}</div>

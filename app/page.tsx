@@ -107,7 +107,7 @@ export default async function Home() {
         <div className="hero-actions centered"><a className="button primary" href={releaseUrl}>Son sürümü indir <span>↓</span></a><Link className="button dark" href={user ? "/library" : "/login"}>{user ? "Kütüphaneme git" : "Web hesabına gir"}</Link></div>
       </section>
 
-      <footer><Link className="brand" href="/"><Mark /><span><b>ENCLAVE</b><small>ORDER</small></span></Link><p>© 2026 Enclave Studios. Oyunların, senin evrenin.</p><div><a href="#security">Güvenlik</a><a href={releaseRepositoryUrl} rel="noreferrer">GitHub</a></div></footer>
+      <footer><Link className="brand" href="/"><Mark /><span><b>ENCLAVE</b><small>ORDER</small></span></Link><p>© 2026 Enclave Studios. Oyunların, senin evrenin.</p><div><Link href="/privacy">Gizlilik</Link><Link href="/kvkk">KVKK</Link><Link href="/terms">Kullanım</Link><Link href="/contact">Destek</Link><a href={releaseRepositoryUrl} rel="noreferrer">GitHub</a></div></footer>
     </main>
   );
 }

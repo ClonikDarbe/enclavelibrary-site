@@ -33,3 +33,18 @@ export function safeReturnTo(value: string | null, fallback = "/library") {
     return url.origin === "https://enclave.local" ? `${url.pathname}${url.search}` : fallback;
   } catch { return fallback; }
 }
+
+type MfaUser = { factors?: { status?: string; factor_type?: string }[] };
+
+export function needsMfaChallenge(user: MfaUser, token: string) {
+  const hasVerifiedTotp = user.factors?.some((factor) => factor.status === "verified" && factor.factor_type === "totp");
+  if (!hasVerifiedTotp) return false;
+  try {
+    const payload = token.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/");
+    if (!payload) return true;
+    const padded = payload.padEnd(Math.ceil(payload.length / 4) * 4, "=");
+    return (JSON.parse(atob(padded)) as { aal?: string }).aal !== "aal2";
+  } catch {
+    return true;
+  }
+}

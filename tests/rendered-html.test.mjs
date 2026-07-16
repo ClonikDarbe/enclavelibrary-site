@@ -140,6 +140,35 @@ test("uploads profile artwork into an owner-scoped storage folder", async () => 
   assert.match(sql, /storage\.foldername\(name\).*auth\.uid\(\)/s);
 });
 
+test("protects account security actions without allowing email changes", async () => {
+  const [securityPage, authHelper, logoutRoute, turnstile, loginRoute, mfaVerify, sql] = await Promise.all([
+    readFile(new URL("../app/security/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/enclave-auth.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/auth/logout/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/turnstile.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/auth/login/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/auth/security/mfa/verify/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/profile_admin.sql", import.meta.url), "utf8"),
+  ]);
+  assert.match(securityPage, /web panelinden değiştirilemez/i);
+  assert.doesNotMatch(securityPage, /type="email"|name="email"/i);
+  assert.match(authHelper, /needsMfaChallenge/);
+  assert.match(logoutRoute, /logout\?scope=local/);
+  assert.match(turnstile, /siteverify/);
+  assert.match(loginRoute, /verifyTurnstile/);
+  assert.match(mfaVerify, /auth\.mfa\.challenge/);
+  assert.match(mfaVerify, /auth\.mfa\.verify/);
+  assert.match(sql, /delete_enclave_account/);
+});
+
+test("publishes Turkish privacy, KVKK, terms and contact pages", async () => {
+  const pages = await Promise.all(["privacy", "kvkk", "terms", "contact"].map((name) => readFile(new URL(`../app/${name}/page.tsx`, import.meta.url), "utf8")));
+  assert.match(pages[0], /Gizlilik/);
+  assert.match(pages[1], /KVKK/);
+  assert.match(pages[2], /Kullanım/);
+  assert.match(pages[3], /İletişim/);
+});
+
 test("resolves a missing cover from an exact Steam title match", async () => {
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ACCESS_COOKIE, ACTIVITY_COOKIE, INACTIVITY_SECONDS, REFRESH_COOKIE, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME = /^[A-Za-z0-9_.-]{3,24}$/;
@@ -10,6 +11,7 @@ export async function POST(request: Request) {
   if (!config) return redirectSignup("Üyelik servisi şu anda kullanılamıyor.");
   const form = await request.formData();
   if (String(form.get("website") || "")) return redirectSuccess();
+  if (!await verifyTurnstile(request, form)) return redirectSignup("Güvenlik doğrulaması başarısız. Tekrar dene.");
   const username = String(form.get("username") || "").trim();
   const email = String(form.get("email") || "").trim().toLowerCase();
   const password = String(form.get("password") || "");

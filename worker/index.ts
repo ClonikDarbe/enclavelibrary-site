@@ -9,6 +9,8 @@ interface Env {
   SUPABASE_PUBLISHABLE_KEY?: string;
   SUPABASE_ANON_KEY?: string;
   STEAMGRIDDB_API_KEY?: string;
+  TURNSTILE_SITE_KEY?: string;
+  TURNSTILE_SECRET_KEY?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -39,6 +41,8 @@ const worker = {
     if (env.SUPABASE_URL) process.env.SUPABASE_URL = env.SUPABASE_URL;
     if (env.SUPABASE_PUBLISHABLE_KEY) process.env.SUPABASE_PUBLISHABLE_KEY = env.SUPABASE_PUBLISHABLE_KEY;
     if (env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
+    if (env.TURNSTILE_SITE_KEY) process.env.TURNSTILE_SITE_KEY = env.TURNSTILE_SITE_KEY;
+    if (env.TURNSTILE_SECRET_KEY) process.env.TURNSTILE_SECRET_KEY = env.TURNSTILE_SECRET_KEY;
 
     if (url.pathname === "/api/steam-summary") {
       return handleSteamSummaryRequest(request, env, ctx);
@@ -73,7 +77,7 @@ const worker = {
     secured.headers.set("Cross-Origin-Resource-Policy", "same-origin");
     secured.headers.set(
       "Content-Security-Policy",
-      "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; upgrade-insecure-requests",
+      "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self' https://*.supabase.co https://challenges.cloudflare.com; upgrade-insecure-requests",
     );
     if (url.pathname.startsWith("/api/auth") || url.pathname === "/library") {
       secured.headers.set("Cache-Control", "no-store, private");

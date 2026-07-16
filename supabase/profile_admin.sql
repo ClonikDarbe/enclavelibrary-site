@@ -159,5 +159,23 @@ $$;
 revoke all on function public.admin_publish_enclave_announcement(text,text) from public;
 grant execute on function public.admin_publish_enclave_announcement(text,text) to authenticated;
 
+create or replace function public.delete_enclave_account()
+returns boolean
+language plpgsql security definer
+set search_path = public, auth, pg_temp
+as $$
+declare owner_id uuid := auth.uid();
+begin
+  if owner_id is null then raise exception 'authentication_required' using errcode = '42501'; end if;
+  delete from public.enclave_web_library where user_id = owner_id;
+  delete from public.enclave_admins where id = owner_id;
+  delete from public.enclave_profiles where id = owner_id;
+  delete from auth.users where id = owner_id;
+  return true;
+end;
+$$;
+revoke all on function public.delete_enclave_account() from public;
+grant execute on function public.delete_enclave_account() to authenticated;
+
 -- After running this file, grant yourself admin access with your real email:
 -- insert into public.enclave_admins(id) select id from auth.users where email = 'YOUR_EMAIL';

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { accessToken, authHeaders, safeReturnTo, supabaseConfig } from "@/lib/enclave-auth";
+import { turnstileSiteKey } from "@/lib/turnstile";
+import Turnstile from "../Turnstile";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Güvenli giriş" };
@@ -27,6 +29,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
         <label>Kullanıcı adı veya e-posta<input name="identifier" required autoComplete="username" maxLength={120} placeholder="oyuncu@eposta.com" /></label>
         <label>Parola<input name="password" required type="password" autoComplete="current-password" minLength={8} maxLength={128} placeholder="••••••••••••" /></label>
         <Link className="auth-text-link" href="/forgot-password">Şifremi unuttum</Link>
+        <Turnstile siteKey={turnstileSiteKey()} />
         <button className="button primary" type="submit">Güvenli giriş <span>→</span></button>
       </form>
       <p className="auth-switch">Enclave hesabın yok mu? <Link href="/signup">Ücretsiz üye ol</Link></p>

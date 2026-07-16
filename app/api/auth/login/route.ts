@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ACCESS_COOKIE, ACTIVITY_COOKIE, INACTIVITY_SECONDS, REFRESH_COOKIE, authHeaders, safeReturnTo, supabaseConfig } from "@/lib/enclave-auth";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME = /^[\p{L}\p{N}_.-]{3,24}$/u;
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
   const identifier = String(form.get("identifier") || "").trim();
   const password = String(form.get("password") || "");
   const returnTo = safeReturnTo(String(form.get("returnTo") || "/library"));
+  if (!await verifyTurnstile(request, form)) return redirectError("Güvenlik doğrulaması başarısız. Tekrar dene.", returnTo);
   if ((!EMAIL.test(identifier.toLowerCase()) && !USERNAME.test(identifier)) || password.length < 8 || password.length > 128) {
     return redirectError("Bilgilerini kontrol edip tekrar dene.", returnTo);
   }
@@ -33,10 +35,12 @@ export async function POST(request: Request) {
   const tokenResponse = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
     method: "POST", headers: authHeaders(config.key), body: JSON.stringify({ email, password }), cache: "no-store",
   });
-  const session = await tokenResponse.json().catch(() => null) as { access_token?: string; refresh_token?: string; expires_in?: number } | null;
+  const session = await tokenResponse.json().catch(() => null) as { access_token?: string; refresh_token?: string; expires_in?: number; user?: { factors?: { status?: string; factor_type?: string }[] } } | null;
   if (!tokenResponse.ok || !session?.access_token || !session.refresh_token) return redirectError("Bilgilerini kontrol edip tekrar dene.", returnTo);
 
-  const response = NextResponse.redirect(new URL(returnTo, request.url), 303);
+  const hasMfa = session.user?.factors?.some((factor) => factor.status === "verified" && factor.factor_type === "totp");
+  const destination = hasMfa ? `/security/mfa?return_to=${encodeURIComponent(returnTo)}` : returnTo;
+  const response = NextResponse.redirect(new URL(destination, request.url), 303);
   const secure = new URL(request.url).protocol === "https:";
   response.cookies.set(ACCESS_COOKIE, session.access_token, { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: Math.max(60, session.expires_in ?? 3600) });
   response.cookies.set(REFRESH_COOKIE, session.refresh_token, { httpOnly: true, secure, sameSite: "strict", path: "/api/auth", maxAge: 60 * 60 * 24 * 30 });

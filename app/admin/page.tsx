@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
+import { accessToken, authHeaders, needsMfaChallenge, supabaseConfig } from "@/lib/enclave-auth";
 import SessionActivityGuard from "../library/SessionActivityGuard";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,15 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const token = await accessToken();
   const config = supabaseConfig();
   if (!token || !config) redirect("/login?return_to=/admin");
-  const dashboardResponse = await fetch(`${config.url}/rest/v1/rpc/admin_enclave_dashboard`, { method: "POST", headers: authHeaders(config.key, token), body: "{}", cache: "no-store" }).catch(() => null);
-  if (dashboardResponse?.status === 401) redirect("/api/auth/refresh?return_to=/admin");
+  const [dashboardResponse, userResponse] = await Promise.all([
+    fetch(`${config.url}/rest/v1/rpc/admin_enclave_dashboard`, { method: "POST", headers: authHeaders(config.key, token), body: "{}", cache: "no-store" }).catch(() => null),
+    fetch(`${config.url}/auth/v1/user`, { headers: authHeaders(config.key, token), cache: "no-store" }).catch(() => null),
+  ]);
+  if (dashboardResponse?.status === 401 || userResponse?.status === 401) redirect("/api/auth/refresh?return_to=/admin");
+  if (userResponse?.ok) {
+    const user = await userResponse.json() as { factors?: { status?: string; factor_type?: string }[] };
+    if (needsMfaChallenge(user, token)) redirect("/security/mfa?return_to=/admin");
+  }
   const denied = dashboardResponse?.status === 403;
   const setupPending = dashboardResponse?.status === 404 || dashboardResponse?.status === 400;
   const dashboard = dashboardResponse?.ok ? await dashboardResponse.json() as Dashboard : null;

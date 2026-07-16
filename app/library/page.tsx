@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
+import { accessToken, authHeaders, needsMfaChallenge, supabaseConfig } from "@/lib/enclave-auth";
 import LibraryExplorer, { type LibraryGame } from "./LibraryExplorer";
 import SessionActivityGuard from "./SessionActivityGuard";
 
@@ -46,7 +46,8 @@ export default async function Library() {
   if (userResponse.status === 401 || gamesResponse.status === 401) redirect("/api/auth/refresh?return_to=/library");
   if (!userResponse.ok) redirect("/login?error=Oturum+doğrulanamadı.");
 
-  const user = await userResponse.json() as { email?: string; user_metadata?: { username?: string } };
+  const user = await userResponse.json() as { email?: string; user_metadata?: { username?: string }; factors?: { status?: string; factor_type?: string }[] };
+  if (needsMfaChallenge(user, token)) redirect("/security/mfa?return_to=/library");
   const rows = gamesResponse.ok ? await gamesResponse.json() as WebLibraryRow[] : [];
   const setupPending = !gamesResponse.ok;
   const games: LibraryGame[] = rows.map((row) => ({

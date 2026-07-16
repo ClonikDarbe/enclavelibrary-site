@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { turnstileSiteKey } from "@/lib/turnstile";
+import Turnstile from "../Turnstile";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Üye ol" };
@@ -17,6 +19,7 @@ export default async function Signup({ searchParams }: { searchParams: Promise<{
         <label>Parola<input name="password" required type="password" autoComplete="new-password" minLength={8} maxLength={128} placeholder="En az 8 karakter" /></label>
         <label>Parolayı tekrar et<input name="passwordConfirm" required type="password" autoComplete="new-password" minLength={8} maxLength={128} placeholder="Parolanı tekrar yaz" /></label>
         <label className="auth-honeypot" aria-hidden="true">Web sitesi<input name="website" tabIndex={-1} autoComplete="off" /></label>
+        <Turnstile siteKey={turnstileSiteKey()} />
         <button className="button primary" type="submit">Hesabımı oluştur <span>→</span></button>
       </form>
       <p className="auth-switch">Zaten hesabın var mı? <Link href="/login">Giriş yap</Link></p>
