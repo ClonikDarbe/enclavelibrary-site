@@ -17,14 +17,15 @@ export default function ProfileMediaPicker({ avatar, banner, username }: { avata
   }
 
   return <div className="profile-media-editor">
+    <div className="profile-media-title"><div><span>GÖRSEL KİMLİK</span><b>Profilini kişiselleştir</b></div><small>Görseller yalnızca senin hesabına kaydedilir.</small></div>
     <label className="profile-banner-picker" style={bannerPreview ? { backgroundImage: `linear-gradient(180deg,rgba(4,5,11,.08),rgba(4,5,11,.72)),url(${bannerPreview})` } : undefined}>
       <input name="bannerFile" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => preview(event.target.files?.[0], setBannerPreview)} />
-      <span><b>Kapak görselini seç</b><small>JPG, PNG veya WEBP • En fazla 6 MB</small></span>
+      <span><i aria-hidden="true">＋</i><b>{bannerPreview ? "Kapak görselini değiştir" : "Kapak görseli ekle"}</b><small>JPG, PNG veya WEBP • En fazla 6 MB</small></span>
     </label>
     <label className="profile-avatar-picker">
       <input name="avatarFile" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => preview(event.target.files?.[0], setAvatarPreview)} />
       <span>{avatarPreview ? <img src={avatarPreview} alt={`${username} profil önizlemesi`} /> : initials(username)}</span>
-      <b>Profil fotoğrafını değiştir</b><small>En fazla 3 MB</small>
+      <div><b>Profil fotoğrafı</b><small>Kare görsel önerilir • En fazla 3 MB</small></div><em>Dosya seç</em>
     </label>
   </div>;
 }
