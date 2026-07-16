@@ -135,6 +135,10 @@ test("uploads profile artwork into an owner-scoped storage folder", async () => 
   ]);
   assert.match(profilePage, /multipart\/form-data/);
   assert.match(picker, /image\/jpeg,image\/png,image\/webp/);
+  assert.match(picker, /drawSquareCrop/);
+  assert.match(picker, /new DataTransfer\(\)/);
+  assert.match(picker, /image\/webp/);
+  assert.match(picker, /Kare kırpmayı ayarla/);
   assert.match(profileRoute, /validImageSignature/);
   assert.match(profileRoute, /storage\/v1\/object\/profile-media/);
   assert.match(sql, /storage\.foldername\(name\).*auth\.uid\(\)/s);
