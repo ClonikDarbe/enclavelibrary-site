@@ -52,6 +52,18 @@ test("keeps authentication server-side and the library read-only", async () => {
   assert.match(wrangler, /"name":\s*"enclave-order"/);
 });
 
+test("returns admin sign-ins to the admin console", async () => {
+  const [loginPage, loginRoute, adminPage] = await Promise.all([
+    readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/auth/login/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(adminPage, /\/login\?return_to=\/admin/);
+  assert.match(loginPage, /safeReturnTo\(query\.return_to/);
+  assert.match(loginPage, /name="returnTo" value=\{returnTo\}/);
+  assert.match(loginRoute, /return_to/);
+});
+
 test("provides secure signup and password recovery flows", async () => {
   const [loginPage, signupRoute, forgotRoute, resetRoute, resetForm, recoveryRedirect, layout] = await Promise.all([
     readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8"),

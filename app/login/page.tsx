@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
+import { accessToken, authHeaders, safeReturnTo, supabaseConfig } from "@/lib/enclave-auth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Güvenli giriş" };
 
-export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; message?: string }> }) {
+export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; message?: string; return_to?: string }> }) {
+  const query = await searchParams;
+  const returnTo = safeReturnTo(query.return_to || null);
   const token = await accessToken();
   const config = supabaseConfig();
   if (token && config) {
     const session = await fetch(`${config.url}/auth/v1/user`, { headers: authHeaders(config.key, token), cache: "no-store" });
-    if (session.ok) redirect("/library");
+    if (session.ok) redirect(returnTo);
   }
-  const { error, message } = await searchParams;
+  const { error, message } = query;
   return <main className="auth-shell">
     <Link className="auth-brand" href="/"><span className="brand-mark">E</span><span><b>ENCLAVE</b><small>ORDER</small></span></Link>
     <section className="auth-card">
@@ -21,7 +23,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="form-success" role="status">{message}</p>}
       <form action="/api/auth/login" method="post">
-        <input type="hidden" name="returnTo" value="/library" />
+        <input type="hidden" name="returnTo" value={returnTo} />
         <label>Kullanıcı adı veya e-posta<input name="identifier" required autoComplete="username" maxLength={120} placeholder="oyuncu@eposta.com" /></label>
         <label>Parola<input name="password" required type="password" autoComplete="current-password" minLength={8} maxLength={128} placeholder="••••••••••••" /></label>
         <Link className="auth-text-link" href="/forgot-password">Şifremi unuttum</Link>

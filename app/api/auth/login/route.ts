@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const password = String(form.get("password") || "");
   const returnTo = safeReturnTo(String(form.get("returnTo") || "/library"));
   if ((!EMAIL.test(identifier.toLowerCase()) && !USERNAME.test(identifier)) || password.length < 8 || password.length > 128) {
-    return redirectError("Bilgilerini kontrol edip tekrar dene.");
+    return redirectError("Bilgilerini kontrol edip tekrar dene.", returnTo);
   }
 
   let email = identifier.toLowerCase();
@@ -24,9 +24,9 @@ export async function POST(request: Request) {
     const resolve = await fetch(`${config.url}/rest/v1/rpc/resolve_enclave_login`, {
       method: "POST", headers: authHeaders(config.key), body: JSON.stringify({ login_identifier: identifier }), cache: "no-store",
     });
-    if (!resolve.ok) return redirectError("Bilgilerini kontrol edip tekrar dene.");
+    if (!resolve.ok) return redirectError("Bilgilerini kontrol edip tekrar dene.", returnTo);
     const result = await resolve.json().catch(() => null);
-    if (typeof result !== "string" || !EMAIL.test(result)) return redirectError("Bilgilerini kontrol edip tekrar dene.");
+    if (typeof result !== "string" || !EMAIL.test(result)) return redirectError("Bilgilerini kontrol edip tekrar dene.", returnTo);
     email = result.toLowerCase();
   }
 
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     method: "POST", headers: authHeaders(config.key), body: JSON.stringify({ email, password }), cache: "no-store",
   });
   const session = await tokenResponse.json().catch(() => null) as { access_token?: string; refresh_token?: string; expires_in?: number } | null;
-  if (!tokenResponse.ok || !session?.access_token || !session.refresh_token) return redirectError("Bilgilerini kontrol edip tekrar dene.");
+  if (!tokenResponse.ok || !session?.access_token || !session.refresh_token) return redirectError("Bilgilerini kontrol edip tekrar dene.", returnTo);
 
   const response = NextResponse.redirect(new URL(returnTo, request.url), 303);
   const secure = new URL(request.url).protocol === "https:";
@@ -45,9 +45,10 @@ export async function POST(request: Request) {
   return response;
 }
 
-function redirectError(message: string) {
+function redirectError(message: string, returnTo = "/library") {
   const url = new URL("/login", "https://enclave.local");
   url.searchParams.set("error", message);
+  if (returnTo !== "/library") url.searchParams.set("return_to", safeReturnTo(returnTo));
   return new NextResponse(null, {
     status: 303,
     headers: {
