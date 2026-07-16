@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
 import SessionActivityGuard from "../library/SessionActivityGuard";
+import CopyProfileUrl from "./CopyProfileUrl";
+import ProfileMediaPicker from "./ProfileMediaPicker";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Oyuncu profili" };
@@ -44,13 +46,15 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
     </section>
     <section className="profile-body">
       <div className="profile-stat-grid"><article><span>OYUN</span><b>{games.length}</b></article><article><span>OYUN SÜRESİ</span><b>{Math.round(minutes / 60)}<small> sa</small></b></article><article><span>PLATFORM</span><b>{platforms}</b></article><article><span>FAVORİ</span><b>{favorites}</b></article></div>
+      <CopyProfileUrl username={username} enabled={Boolean(profile?.is_public)} />
       <div className="profile-columns">
         <section className="profile-panel"><p className="eyebrow"><span /> PROFİL AYARLARI</p>{error && <p className="form-error">{error}</p>}{message && <p className="form-success">{message}</p>}{setupPending && <p className="form-error">Profil sistemi Supabase kurulumu bekliyor.</p>}
-          <form action="/api/profile" method="post">
+          <form action="/api/profile" method="post" encType="multipart/form-data">
+            <ProfileMediaPicker avatar={avatar} banner={banner} username={username} />
             <label>Kullanıcı adı<input name="username" defaultValue={username} required minLength={3} maxLength={24} /></label>
             <label>Biyografi<textarea name="bio" defaultValue={profile?.bio || ""} maxLength={240} placeholder="Oyuncu profilinden biraz bahset…" /></label>
-            <label>Profil fotoğrafı URL<input name="avatarUrl" type="url" defaultValue={profile?.avatar_url || ""} placeholder="https://…" /></label>
-            <label>Kapak görseli URL<input name="bannerUrl" type="url" defaultValue={profile?.banner_url || ""} placeholder="https://…" /></label>
+            <input name="currentAvatarUrl" type="hidden" value={profile?.avatar_url || ""} />
+            <input name="currentBannerUrl" type="hidden" value={profile?.banner_url || ""} />
             <label className="profile-public-toggle"><input name="isPublic" type="checkbox" defaultChecked={Boolean(profile?.is_public)} /><span><b>Herkese açık profil</b><small>Paylaşım bağlantısına sahip kişiler oyun istatistiklerini görebilir.</small></span></label>
             <button className="button primary" disabled={setupPending}>Profili kaydet</button>
           </form>

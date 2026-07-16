@@ -7,6 +7,24 @@ alter table public.enclave_profiles add column if not exists is_public boolean n
 create unique index if not exists enclave_profiles_username_ci_unique
 on public.enclave_profiles (lower(username)) where username <> '';
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('profile-media', 'profile-media', true, 6000000, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update set public = true, file_size_limit = 6000000, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "profile media public read" on storage.objects;
+create policy "profile media public read" on storage.objects for select to public
+using (bucket_id = 'profile-media');
+drop policy if exists "profile media owner insert" on storage.objects;
+create policy "profile media owner insert" on storage.objects for insert to authenticated
+with check (bucket_id = 'profile-media' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "profile media owner update" on storage.objects;
+create policy "profile media owner update" on storage.objects for update to authenticated
+using (bucket_id = 'profile-media' and (storage.foldername(name))[1] = auth.uid()::text)
+with check (bucket_id = 'profile-media' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "profile media owner delete" on storage.objects;
+create policy "profile media owner delete" on storage.objects for delete to authenticated
+using (bucket_id = 'profile-media' and (storage.foldername(name))[1] = auth.uid()::text);
+
 create table if not exists public.enclave_admins (
   id uuid primary key references auth.users(id) on delete cascade,
   created_at timestamptz not null default now()

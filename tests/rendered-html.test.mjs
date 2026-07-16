@@ -126,6 +126,20 @@ test("provides privacy-safe player profiles and an owner-only admin console", as
   assert.match(sql, /revoke all on function/i);
 });
 
+test("uploads profile artwork into an owner-scoped storage folder", async () => {
+  const [profilePage, picker, profileRoute, sql] = await Promise.all([
+    readFile(new URL("../app/profile/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/profile/ProfileMediaPicker.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/profile/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/profile_admin.sql", import.meta.url), "utf8"),
+  ]);
+  assert.match(profilePage, /multipart\/form-data/);
+  assert.match(picker, /image\/jpeg,image\/png,image\/webp/);
+  assert.match(profileRoute, /validImageSignature/);
+  assert.match(profileRoute, /storage\/v1\/object\/profile-media/);
+  assert.match(sql, /storage\.foldername\(name\).*auth\.uid\(\)/s);
+});
+
 test("resolves a missing cover from an exact Steam title match", async () => {
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;
