@@ -169,6 +169,20 @@ test("publishes Turkish privacy, KVKK, terms and contact pages", async () => {
   assert.match(pages[3], /İletişim/);
 });
 
+test("ships branded Supabase email templates with secure confirmation links", async () => {
+  const [confirm, recovery] = await Promise.all([
+    readFile(new URL("../supabase/email-templates/confirm-signup.html", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/email-templates/reset-password.html", import.meta.url), "utf8"),
+  ]);
+  for (const template of [confirm, recovery]) {
+    assert.match(template, /\{\{ \.ConfirmationURL \}\}/);
+    assert.match(template, /ENCLAVE/);
+    assert.doesNotMatch(template, /<script|javascript:/i);
+  }
+  assert.match(confirm, /HESABIMI DOĞRULA/);
+  assert.match(recovery, /PAROLAMI YENİLE/);
+});
+
 test("resolves a missing cover from an exact Steam title match", async () => {
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;
