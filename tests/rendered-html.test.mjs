@@ -20,6 +20,7 @@ test("renders the Enclave Order landing page with security headers", async () =>
   assert.equal(response.headers.get("x-frame-options"), "DENY");
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   assert.match(response.headers.get("content-security-policy") ?? "", /frame-ancestors 'none'/);
+  assert.match(response.headers.get("content-security-policy") ?? "", /img-src 'self' data: blob: https:/);
 
   const html = await response.text();
   assert.match(html, /Enclave Order/i);
