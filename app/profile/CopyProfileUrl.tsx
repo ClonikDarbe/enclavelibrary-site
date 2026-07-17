@@ -10,8 +10,8 @@ export default function CopyProfileUrl({ username, enabled }: { username: string
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   }
-  return <div className="profile-url-card">
-    <div><span>KİŞİSEL PROFİL ADRESİN</span><b>enclavelibrary.com{path}</b><small>{enabled ? "Profilin herkese açık." : "Bağlantının çalışması için herkese açık profili etkinleştir."}</small></div>
-    <button type="button" onClick={copy}>{copied ? "Kopyalandı ✓" : "Bağlantıyı kopyala"}</button>
-  </div>;
+  if (!enabled) return null;
+  return <button className="profile-copy-link" type="button" onClick={copy} aria-label="Herkese açık profil bağlantısını kopyala">
+    {copied ? "Kopyalandı ✓" : "Bağlantıyı kopyala"}
+  </button>;
 }

@@ -43,11 +43,10 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
     <header className="profile-header"><Link className="brand" href="/"><span className="brand-mark">E</span><span><b>ENCLAVE</b><small>ORDER</small></span></Link><nav><Link href="/library">Kütüphane</Link><Link href="/security">Hesap ve güvenlik</Link><form action="/api/auth/logout" method="post"><button>Çıkış</button></form></nav></header>
     <section className="profile-hero" style={banner ? { backgroundImage: `linear-gradient(180deg,rgba(5,6,12,.12),#070810),url(${banner})` } : undefined}>
       <div className="profile-avatar">{avatar ? <img src={avatar} alt={`${username} profil resmi`} referrerPolicy="no-referrer" /> : initials(username)}</div>
-      <div><p className="eyebrow"><span /> PLAYER PROFILE</p><h1>{username}</h1><p>{profile?.bio || "Kütüphanesini tek merkezde yöneten Enclave oyuncusu."}</p>{profile?.is_public ? <Link className="profile-share" href={`/u/${encodeURIComponent(username)}`}>Herkese açık profili görüntüle ↗</Link> : <span className="profile-private">GİZLİ PROFİL</span>}</div>
+      <div><p className="eyebrow"><span /> PLAYER PROFILE</p><h1>{username}</h1><p>{profile?.bio || "Kütüphanesini tek merkezde yöneten Enclave oyuncusu."}</p>{profile?.is_public ? <div className="profile-share-actions"><Link className="profile-share" href={`/u/${encodeURIComponent(username)}`}>Herkese açık profili görüntüle ↗</Link><CopyProfileUrl username={username} enabled /></div> : <span className="profile-private">GİZLİ PROFİL</span>}</div>
     </section>
     <section className="profile-body">
       <div className="profile-stat-grid"><article><span>OYUN</span><b>{games.length}</b></article><article><span>OYUN SÜRESİ</span><b>{Math.round(minutes / 60)}<small> sa</small></b></article><article><span>PLATFORM</span><b>{platforms}</b></article><article><span>FAVORİ</span><b>{favorites}</b></article></div>
-      <CopyProfileUrl username={username} enabled={Boolean(profile?.is_public)} />
       <div className="profile-columns">
         <section className="profile-panel"><p className="eyebrow"><span /> PROFİL AYARLARI</p>{error && <p className="form-error">{error}</p>}{message && <p className="form-success">{message}</p>}{setupPending && <p className="form-error">Profil sistemi Supabase kurulumu bekliyor.</p>}
           <form action="/api/profile" method="post" encType="multipart/form-data">

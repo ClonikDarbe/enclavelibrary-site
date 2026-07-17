@@ -108,8 +108,9 @@ test("expires authenticated web sessions after fifteen minutes of inactivity", a
 });
 
 test("provides privacy-safe player profiles and an owner-only admin console", async () => {
-  const [profilePage, profileRoute, publicProfile, adminPage, adminRoute, sql] = await Promise.all([
+  const [profilePage, copyProfileUrl, profileRoute, publicProfile, adminPage, adminRoute, sql] = await Promise.all([
     readFile(new URL("../app/profile/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/profile/CopyProfileUrl.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/profile/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/u/[username]/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
@@ -117,6 +118,9 @@ test("provides privacy-safe player profiles and an owner-only admin console", as
     readFile(new URL("../supabase/profile_admin.sql", import.meta.url), "utf8"),
   ]);
   assert.match(profilePage, /is_public/);
+  assert.match(profilePage, /href={`\/u\/\${encodeURIComponent\(username\)}`}/);
+  assert.doesNotMatch(copyProfileUrl, /KİŞİSEL PROFİL ADRESİN|enclavelibrary\.com/);
+  assert.match(copyProfileUrl, /Bağlantıyı kopyala/);
   assert.match(profileRoute, /update_enclave_public_profile/);
   assert.match(publicProfile, /get_public_enclave_profile/);
   assert.doesNotMatch(publicProfile, /auth\.users|email/);
