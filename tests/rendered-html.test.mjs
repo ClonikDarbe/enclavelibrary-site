@@ -30,6 +30,38 @@ test("renders the Enclave Order landing page with security headers", async () =>
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
+test("publishes canonical Enclave Library search metadata and discovery files", async () => {
+  const [homeResponse, robotsResponse, sitemapResponse, profileResponse] = await Promise.all([
+    render("/"),
+    render("/robots.txt"),
+    render("/sitemap.xml"),
+    render("/profile"),
+  ]);
+  const [home, robots, sitemap] = await Promise.all([
+    homeResponse.text(),
+    robotsResponse.text(),
+    sitemapResponse.text(),
+  ]);
+  assert.match(home, /Enclave Library — Oyun Arşivin Tek Merkezde/);
+  assert.match(home, /rel="canonical" href="https:\/\/enclavelibrary\.com\/"/);
+  assert.match(home, /"@type":"WebSite"/);
+  assert.match(home, /"name":"Enclave Library"/);
+  assert.match(robots, /Sitemap:\s*https:\/\/enclavelibrary\.com\/sitemap\.xml/i);
+  assert.match(sitemap, /<loc>https:\/\/enclavelibrary\.com\/<\/loc>/);
+  assert.equal(profileResponse.headers.get("x-robots-tag"), "noindex, nofollow");
+
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("canonical-test", `${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+  const redirect = await worker.fetch(
+    new Request("https://www.enclavelibrary.com/library?view=grid"),
+    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
+    { waitUntil() {}, passThroughOnException() {} },
+  );
+  assert.equal(redirect.status, 308);
+  assert.equal(redirect.headers.get("location"), "https://enclavelibrary.com/library?view=grid");
+});
+
 test("keeps authentication server-side and the library read-only", async () => {
   const [loginRoute, authHelper, libraryPage, libraryExplorer, homePage, wrangler] = await Promise.all([
     readFile(new URL("../app/api/auth/login/route.ts", import.meta.url), "utf8"),

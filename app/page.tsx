@@ -3,9 +3,35 @@ import { accessToken, authHeaders, supabaseConfig } from "@/lib/enclave-auth";
 import SessionActivityGuard from "./library/SessionActivityGuard";
 
 export const dynamic = "force-dynamic";
+export const metadata = { alternates: { canonical: "/" } };
 
 const releaseUrl = "/download/windows";
 const releaseRepositoryUrl = "https://github.com/ClonikDarbe/EnclaveLibrary-Releases";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://enclavelibrary.com/#website",
+      url: "https://enclavelibrary.com/",
+      name: "Enclave Library",
+      alternateName: ["Enclave Order", "enclavelibrary.com"],
+      inLanguage: "tr-TR",
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://enclavelibrary.com/#application",
+      name: "Enclave Library",
+      alternateName: "Enclave Order",
+      url: "https://enclavelibrary.com/",
+      operatingSystem: "Windows",
+      applicationCategory: "UtilitiesApplication",
+      description: "Steam, Epic Games, GOG, Xbox ve diğer platformlardaki oyunları tek bir kütüphanede birleştiren oyuncu uygulaması.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "TRY" },
+      publisher: { "@type": "Organization", name: "Enclave Studios", url: "https://enclavelibrary.com/" },
+    },
+  ],
+};
 
 function Mark() {
   return <span className="brand-mark" aria-hidden="true">E</span>;
@@ -24,6 +50,8 @@ export default async function Home() {
   const username = user ? profileName(user) : "";
   const avatarUrl = user ? safeAvatarUrl(user.user_metadata?.avatar_url || user.user_metadata?.picture) : "";
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
     <main>
       {user ? <SessionActivityGuard /> : null}
       <header className="site-header">
@@ -45,9 +73,9 @@ export default async function Home() {
       <section className="hero">
         <div className="hero-grid" aria-hidden="true" />
         <div className="hero-copy">
-          <p className="eyebrow"><span /> ENCLAVE 2.0 // CLOUD ONLINE</p>
+          <p className="eyebrow"><span /> ENCLAVE LIBRARY 2.0 // CLOUD ONLINE</p>
           <h1>Oyun dünyan.<br /><em>Tek bir evren.</em></h1>
-          <p className="hero-lead">Launcher kalabalığını sustur. Steam’den Epic’e, GOG’dan Xbox’a tüm koleksiyonunu tek bir hızlı ve güvenli oyuncu merkezinde topla.</p>
+          <p className="hero-lead">Enclave Library ile launcher kalabalığını sustur. Steam’den Epic’e, GOG’dan Xbox’a tüm koleksiyonunu tek bir hızlı ve güvenli oyuncu merkezinde topla.</p>
           <div className="hero-actions">
             <a className="button primary" href={releaseUrl}>Şimdi indir <span>↓</span></a>
             <Link className="button ghost" href="/login">Kütüphanemi görüntüle</Link>
@@ -107,8 +135,9 @@ export default async function Home() {
         <div className="hero-actions centered"><a className="button primary" href={releaseUrl}>Son sürümü indir <span>↓</span></a><Link className="button dark" href={user ? "/library" : "/login"}>{user ? "Kütüphaneme git" : "Web hesabına gir"}</Link></div>
       </section>
 
-      <footer><Link className="brand" href="/"><Mark /><span><b>ENCLAVE</b><small>ORDER</small></span></Link><p>© 2026 Enclave Studios. Oyunların, senin evrenin.</p><div><Link href="/privacy">Gizlilik</Link><Link href="/kvkk">KVKK</Link><Link href="/terms">Kullanım</Link><Link href="/contact">Destek</Link><a href={releaseRepositoryUrl} rel="noreferrer">GitHub</a></div></footer>
+      <footer><Link className="brand" href="/"><Mark /><span><b>ENCLAVE</b><small>ORDER</small></span></Link><p>© 2026 Enclave Library by Enclave Studios. Oyunların, senin evrenin.</p><div><Link href="/privacy">Gizlilik</Link><Link href="/kvkk">KVKK</Link><Link href="/terms">Kullanım</Link><Link href="/contact">Destek</Link><a href={releaseRepositoryUrl} rel="noreferrer">GitHub</a></div></footer>
     </main>
+    </>
   );
 }
 

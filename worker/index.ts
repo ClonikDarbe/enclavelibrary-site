@@ -34,6 +34,13 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (url.hostname === "www.enclavelibrary.com" || url.hostname === "enclave-order.dogukanunlu06.workers.dev") {
+      const canonicalUrl = new URL(`${url.pathname}${url.search}`, "https://enclavelibrary.com");
+      return new Response(null, {
+        status: 308,
+        headers: { Location: canonicalUrl.toString(), "Cache-Control": "public, max-age=86400" },
+      });
+    }
 
     // vinext route handlers read server-only configuration through process.env.
     // Mirror the Worker bindings explicitly so dashboard secrets remain runtime
@@ -81,6 +88,9 @@ const worker = {
     );
     if (url.pathname.startsWith("/api/auth") || url.pathname === "/library") {
       secured.headers.set("Cache-Control", "no-store, private");
+    }
+    if (/^\/(?:admin|api|forgot-password|library|login|profile|reset-password|security|signup)(?:\/|$)/.test(url.pathname)) {
+      secured.headers.set("X-Robots-Tag", "noindex, nofollow");
     }
     return secured;
   },
